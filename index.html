@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>智慧測驗與即時回饋系統</title>
     
-    <!-- 設定 Tailwind CSS 的自訂佈景主題變數 -->
     <script>
         window.tailwind = {
             config: {
@@ -62,7 +61,7 @@
             
             const { useState, useEffect, useMemo, createContext, useContext } = React;
 
-            // 注入核心 CSS 與佈景變數
+            // --- 升級版 CSS 變數：徹底分離賽博龐克與傳統深淺色的陰影效果 ---
             const injectStyles = () => {
                 if (document.getElementById('cyber-styles')) return;
                 const style = document.createElement('style');
@@ -73,10 +72,11 @@
                     :root, [data-theme="cyber"] {
                         --bg-main: 5 11 20;
                         --bg-panel: 15 23 42;
-                        --bg-input: 15 23 42;
+                        --bg-input: 10 15 30;
                         --text-main: 226 232 240;
                         --text-muted: 148 163 184;
-                        --border-main: 51 65 85;
+                        --border-main: 0 240 255; 
+                        --border-opacity: 0.3;
                         --color-primary: 0 240 255;
                         --color-secondary: 181 23 158;
                         --color-success: 57 255 20;
@@ -84,38 +84,58 @@
                         --color-warning: 234 179 8;
                         --glass-blur: blur(12px);
                         --bg-pattern: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+                        --shadow-panel: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                        --shadow-neon: 0 0 10px rgba(var(--color-primary), 0.2), inset 0 0 10px rgba(var(--color-primary), 0.1);
+                        --shadow-neon-hover: 0 0 20px rgba(var(--color-primary), 0.6), inset 0 0 15px rgba(var(--color-primary), 0.3);
+                        --shadow-green: 0 0 10px rgba(var(--color-success), 0.2), inset 0 0 10px rgba(var(--color-success), 0.1);
+                        --shadow-green-hover: 0 0 20px rgba(var(--color-success), 0.6), inset 0 0 15px rgba(var(--color-success), 0.3);
+                        --text-glow-css: 0 0 10px rgba(var(--color-primary), 0.5);
                     }
                     
                     [data-theme="light"] {
-                        --bg-main: 248 250 252;
+                        --bg-main: 243 244 246; 
                         --bg-panel: 255 255 255;
-                        --bg-input: 241 245 249;
-                        --text-main: 30 41 59;
-                        --text-muted: 100 116 139;
-                        --border-main: 203 213 225;
+                        --bg-input: 255 255 255;
+                        --text-main: 31 41 55;
+                        --text-muted: 107 114 128;
+                        --border-main: 209 213 219;
+                        --border-opacity: 1;
                         --color-primary: 37 99 235;
                         --color-secondary: 124 58 237;
                         --color-success: 22 163 74;
                         --color-danger: 220 38 38;
-                        --color-warning: 202 138 4;
-                        --glass-blur: blur(20px);
-                        --bg-pattern: linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+                        --color-warning: 217 119 6;
+                        --glass-blur: none;
+                        --bg-pattern: none;
+                        --shadow-panel: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                        --shadow-neon: none;
+                        --shadow-neon-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                        --shadow-green: none;
+                        --shadow-green-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                        --text-glow-css: none;
                     }
 
                     [data-theme="dark"] {
-                        --bg-main: 18 18 18;
-                        --bg-panel: 30 30 30;
-                        --bg-input: 45 45 45;
+                        --bg-main: 17 24 39; 
+                        --bg-panel: 31 41 55; 
+                        --bg-input: 55 65 81; 
                         --text-main: 243 244 246;
                         --text-muted: 156 163 175;
                         --border-main: 75 85 99;
-                        --color-primary: 59 130 246;
-                        --color-secondary: 139 92 246;
-                        --color-success: 16 185 129;
-                        --color-danger: 239 68 68;
-                        --color-warning: 245 158 11;
+                        --border-opacity: 1;
+                        --color-primary: 96 165 250;
+                        --color-secondary: 167 139 250;
+                        --color-success: 52 211 153;
+                        --color-danger: 248 113 113;
+                        --color-warning: 251 191 36;
                         --glass-blur: none;
                         --bg-pattern: none;
+                        --shadow-panel: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+                        --shadow-neon: none;
+                        --shadow-neon-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+                        --shadow-green: none;
+                        --shadow-green-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+                        --text-glow-css: none;
                     }
 
                     body {
@@ -126,29 +146,29 @@
                     .font-cyber { font-family: 'Orbitron', 'Noto Sans TC', sans-serif; }
                     
                     .glass-panel {
-                        background: rgba(var(--bg-panel), 0.85);
+                        background: rgba(var(--bg-panel), 0.95);
                         backdrop-filter: var(--glass-blur);
                         -webkit-backdrop-filter: var(--glass-blur);
-                        border: 1px solid rgba(var(--border-main), 0.5);
-                        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+                        border: 1px solid rgba(var(--border-main), var(--border-opacity));
+                        box-shadow: var(--shadow-panel);
                     }
                     
                     .neon-border {
-                        border: 1px solid rgba(var(--color-primary), 0.4);
-                        box-shadow: 0 0 10px rgba(var(--color-primary), 0.1), inset 0 0 10px rgba(var(--color-primary), 0.05);
+                        border: 1px solid rgba(var(--color-primary), var(--border-opacity));
+                        box-shadow: var(--shadow-neon);
                     }
                     .neon-border:hover {
-                        box-shadow: 0 0 20px rgba(var(--color-primary), 0.3), inset 0 0 15px rgba(var(--color-primary), 0.15);
-                        border-color: rgba(var(--color-primary), 0.8);
+                        box-shadow: var(--shadow-neon-hover);
+                        border-color: rgba(var(--color-primary), 1);
                     }
 
                     .neon-border-green {
-                        border: 1px solid rgba(var(--color-success), 0.4);
-                        box-shadow: 0 0 10px rgba(var(--color-success), 0.1), inset 0 0 10px rgba(var(--color-success), 0.05);
+                        border: 1px solid rgba(var(--color-success), var(--border-opacity));
+                        box-shadow: var(--shadow-green);
                     }
                     .neon-border-green:hover {
-                        box-shadow: 0 0 20px rgba(var(--color-success), 0.3), inset 0 0 15px rgba(var(--color-success), 0.15);
-                        border-color: rgba(var(--color-success), 0.8);
+                        box-shadow: var(--shadow-green-hover);
+                        border-color: rgba(var(--color-success), 1);
                     }
 
                     .scanline {
@@ -159,7 +179,7 @@
                     }
                     @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
                     
-                    .text-glow { text-shadow: 0 0 10px rgba(var(--color-primary), 0.5); }
+                    .text-glow { text-shadow: var(--text-glow-css); }
                     .text-gradient { background: linear-gradient(to right, rgb(var(--color-primary)), rgb(var(--color-secondary))); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                     
                     @keyframes pulse-ring {
@@ -315,7 +335,7 @@
 
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4">
-                        <div className="glass-panel p-8 md:p-12 rounded-3xl max-w-3xl w-full relative overflow-hidden">
+                        <div className="glass-panel p-8 md:p-12 rounded-3xl max-w-3xl w-full relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.1)]">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-theme-primary to-theme-secondary"></div>
                             
                             <h1 className="text-3xl md:text-4xl font-cyber font-bold text-glow mb-2">
@@ -354,7 +374,7 @@
                                     
                                     <button 
                                         onClick={handleParse}
-                                        className="mt-4 w-full py-3 bg-theme-primary hover:opacity-90 text-white font-cyber font-bold rounded-xl transition transform hover:scale-[1.02] active:scale-95"
+                                        className="mt-4 w-full py-3 bg-theme-primary hover:opacity-90 text-white font-cyber font-bold rounded-xl transition transform hover:scale-[1.02] active:scale-95 shadow-md"
                                     >
                                         [ 初始化資料庫 ]
                                     </button>
@@ -485,7 +505,7 @@
             }
 
             // ==========================================
-            // 教師驗證模組 (Commander Auth)
+            // 教師驗證模組
             // ==========================================
             function TeacherAuth({ setView }) {
                 const { auth } = useContext(AppContext);
@@ -529,7 +549,7 @@
                                     <label className="block font-mono text-theme-secondary text-xs mb-2">電子郵件 (Email)</label>
                                     <input 
                                         type="email" required
-                                        className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-secondary font-mono"
+                                        className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-secondary font-mono shadow-sm"
                                         value={email} onChange={e => setEmail(e.target.value)}
                                     />
                                 </div>
@@ -537,14 +557,14 @@
                                     <label className="block font-mono text-theme-secondary text-xs mb-2">密碼 (Password)</label>
                                     <input 
                                         type="password" required minLength="6"
-                                        className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-secondary font-mono"
+                                        className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-secondary font-mono shadow-sm"
                                         value={password} onChange={e => setPassword(e.target.value)}
                                     />
                                 </div>
 
                                 {error && <div className="text-theme-danger text-xs mt-2 font-mono bg-theme-danger/10 p-3 rounded border border-theme-danger/50 whitespace-pre-line">{error}</div>}
 
-                                <button type="submit" className="w-full py-4 rounded-xl font-cyber font-bold text-lg transition shadow-lg mt-6 bg-theme-secondary hover:opacity-90 text-white">
+                                <button type="submit" className="w-full py-4 rounded-xl font-cyber font-bold text-lg transition shadow-md mt-6 bg-theme-secondary hover:opacity-90 text-white">
                                     [ {isRegister ? '註冊並進入' : '授權登入'} ]
                                 </button>
                                 
@@ -612,7 +632,6 @@
                 );
             }
 
-            // 標籤 1: 即時成績
             function TabRadar({ scores }) {
                 return (
                     <div className="glass-panel rounded-2xl p-6 border-theme-success/50">
@@ -652,7 +671,6 @@
                 );
             }
 
-            // 標籤 2: 學生管理
             function TabStudents() {
                 const { db } = useContext(AppContext);
                 const [students, setStudents] = useState([]);
@@ -694,25 +712,18 @@
                 const handleBatchImport = async (e) => {
                     e.preventDefault();
                     if (!batchData.trim()) return;
-                    
                     try {
                         const batch = writeBatch(db);
                         const lines = batchData.trim().split('\n');
                         let count = 0;
-                        
                         for (let line of lines) {
                             const parts = line.split(/\t|,/).map(s => s.trim()).filter(s => s !== '');
                             if (parts.length >= 3) {
                                 const docRef = doc(collection(db, getPath('students')));
-                                batch.set(docRef, {
-                                    classRoom: String(parts[0]),
-                                    seatNo: String(parts[1]),
-                                    name: String(parts[2])
-                                });
+                                batch.set(docRef, { classRoom: String(parts[0]), seatNo: String(parts[1]), name: String(parts[2]) });
                                 count++;
                             }
                         }
-                        
                         if (count > 0) {
                             await batch.commit();
                             alert(`✅ 成功匯入 ${count} 筆學生資料！`);
@@ -758,12 +769,12 @@
                                         <div><label className="text-xs text-theme-muted font-mono">座號</label><input type="number" className="w-full bg-theme-input border border-theme-border rounded p-2 text-theme-text font-mono mt-1" value={newSeat} onChange={e=>setNewSeat(e.target.value)} required /></div>
                                         <div><label className="text-xs text-theme-muted font-mono">姓名</label><input type="text" className="w-full bg-theme-input border border-theme-border rounded p-2 text-theme-text font-mono mt-1" value={newName} onChange={e=>setNewName(e.target.value)} required /></div>
                                     </div>
-                                    <button type="submit" className="w-full py-3 bg-theme-primary text-white rounded font-cyber transition">[ 新增資料 ]</button>
+                                    <button type="submit" className="w-full py-3 bg-theme-primary hover:opacity-90 text-white rounded font-cyber transition">[ 新增資料 ]</button>
                                 </form>
                             ) : (
                                 <form onSubmit={handleBatchImport} className="space-y-4 animate-fade-in">
                                     <div><textarea placeholder="格式：班級 座號 姓名&#10;(支援 Tab 或逗號分隔)" className="w-full bg-theme-input border border-theme-border rounded p-2 text-theme-text font-mono mt-1 h-48 text-sm" value={batchData} onChange={e=>setBatchData(e.target.value)} required /></div>
-                                    <button type="submit" className="w-full py-3 bg-theme-secondary text-white rounded font-cyber transition">[ 批次匯入 ]</button>
+                                    <button type="submit" className="w-full py-3 bg-theme-secondary hover:opacity-90 text-white rounded font-cyber transition">[ 批次匯入 ]</button>
                                 </form>
                             )}
                         </div>
@@ -782,7 +793,7 @@
                                                             <td className="p-2"><input type="text" className="w-full bg-theme-bg border border-theme-primary text-theme-primary px-2 py-1 rounded outline-none" value={editData.classRoom} onChange={e=>setEditData({...editData, classRoom: e.target.value})} /></td>
                                                             <td className="p-2"><input type="text" className="w-full bg-theme-bg border border-theme-primary text-theme-text px-2 py-1 rounded outline-none" value={editData.seatNo} onChange={e=>setEditData({...editData, seatNo: e.target.value})} /></td>
                                                             <td className="p-2"><input type="text" className="w-full bg-theme-bg border border-theme-primary text-theme-text px-2 py-1 rounded outline-none" value={editData.name} onChange={e=>setEditData({...editData, name: e.target.value})} /></td>
-                                                            <td className="p-2 text-right whitespace-nowrap"><button onClick={() => saveEdit(s.id)} className="px-3 py-1.5 bg-theme-success text-white rounded transition text-xs mr-2 font-bold">儲存</button><button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-theme-input text-theme-muted hover:text-theme-text rounded transition text-xs">取消</button></td>
+                                                            <td className="p-2 text-right whitespace-nowrap"><button onClick={() => saveEdit(s.id)} className="px-3 py-1.5 bg-theme-success text-white rounded transition text-xs mr-2 font-bold">儲存</button><button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-theme-input border border-theme-border text-theme-muted hover:text-theme-text rounded transition text-xs">取消</button></td>
                                                         </>
                                                     ) : (
                                                         <>
@@ -801,19 +812,22 @@
                 );
             }
 
-            // 標籤 3: 試卷管理
+            // 標籤 3: 試卷管理 (升級 6 欄位版本)
             function TabExams() {
                 const { db } = useContext(AppContext);
                 const [exams, setExams] = useState([]);
                 const [title, setTitle] = useState('');
                 const [currentQuestions, setCurrentQuestions] = useState([]);
                 
+                // 單題新增狀態
                 const [qText, setQText] = useState('');
                 const [correct, setCorrect] = useState('');
-                const [w1, setW1] = useState('');
-                const [w2, setW2] = useState('');
-                const [w3, setW3] = useState('');
+                const [opt1, setOpt1] = useState('');
+                const [opt2, setOpt2] = useState('');
+                const [opt3, setOpt3] = useState('');
+                const [opt4, setOpt4] = useState('');
 
+                // 批次匯入狀態
                 const [isBatchMode, setIsBatchMode] = useState(false);
                 const [batchData, setBatchData] = useState('');
 
@@ -827,14 +841,20 @@
 
                 const addTempQuestion = (e) => {
                     e.preventDefault();
-                    if(!qText || !correct || !w1 || !w2 || !w3) return alert('請填滿所有題目與選項！');
+                    if(!qText || !correct || !opt1 || !opt2 || !opt3 || !opt4) return alert('請填滿所有題目與選項！');
+                    
+                    const optionsArray = [opt1.trim(), opt2.trim(), opt3.trim(), opt4.trim()];
+                    if (!optionsArray.includes(correct.trim())) {
+                        if (!confirm('警告：您設定的「答案」不在四個選項之中。確定要加入嗎？')) return;
+                    }
+
                     setCurrentQuestions([...currentQuestions, {
                         id: Date.now(),
                         question: qText.trim(),
                         correct: correct.trim(),
-                        options: [correct.trim(), w1.trim(), w2.trim(), w3.trim()]
+                        options: optionsArray
                     }]);
-                    setQText(''); setCorrect(''); setW1(''); setW2(''); setW3('');
+                    setQText(''); setCorrect(''); setOpt1(''); setOpt2(''); setOpt3(''); setOpt4('');
                 };
 
                 const handleBatchImport = (e) => {
@@ -849,12 +869,13 @@
                         const line = lines[i];
                         const parts = line.split(/\t|,/).map(s => s.trim()).filter(s => s !== '');
                         
-                        if (parts.length >= 5) {
+                        // 需要 6 欄位：題目, 答案, 選項1, 選項2, 選項3, 選項4
+                        if (parts.length >= 6) {
                             newQuestions.push({
                                 id: Date.now() + i, 
                                 question: parts[0],
                                 correct: parts[1],
-                                options: [parts[1], parts[2], parts[3], parts[4]]
+                                options: [parts[2], parts[3], parts[4], parts[5]]
                             });
                             count++;
                         }
@@ -866,7 +887,7 @@
                         setBatchData('');
                         setIsBatchMode(false);
                     } else {
-                        alert('找不到有效的題目格式。\n請確保每行格式為「題目 正確答案 錯誤1 錯誤2 錯誤3」並以 Tab 或逗號分隔。');
+                        alert('找不到有效的題目格式。\n請確保每行有 6 個欄位：「題目 答案 選項1 選項2 選項3 選項4」並以 Tab 或逗號分隔。');
                     }
                 };
 
@@ -890,14 +911,27 @@
                     catch(err) { alert('刪除失敗'); }
                 };
 
+                // 下載 CSV 範例檔
+                const downloadSample = () => {
+                    const csvContent = "\uFEFF題目,答案,選項一,選項二,選項三,選項四\n「躊躇」的意思是什麼？,猶豫不決,非常快樂,大聲說話,猶豫不決,走路很快\n台灣最高的山是哪一座？,玉山,阿里山,玉山,雪山,陽明山\n";
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "測驗題庫匯入範例.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+
                 return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="glass-panel p-6 rounded-2xl border-theme-warning">
+                        <div className="glass-panel p-6 rounded-2xl border-theme-warning h-fit">
                             <div className="flex justify-between items-center border-b border-theme-border pb-2 mb-4">
                                 <h3 className="text-lg font-cyber text-theme-warning">建置新任務 (New Mission)</h3>
                                 <button 
                                     onClick={() => setIsBatchMode(!isBatchMode)} 
-                                    className="text-xs px-3 py-1.5 bg-theme-input text-theme-warning hover:text-theme-text rounded font-mono border border-theme-border transition"
+                                    className="text-xs px-3 py-1.5 bg-theme-input text-theme-warning hover:text-theme-text rounded font-mono border border-theme-border transition shadow-sm"
                                 >
                                     切換為{isBatchMode ? '單題新增' : '批次匯入'}
                                 </button>
@@ -905,37 +939,40 @@
 
                             <div className="mb-4">
                                 <label className="text-xs text-theme-muted font-mono">任務/試卷名稱 (必須填寫)</label>
-                                <input type="text" className="w-full bg-theme-input border border-theme-border rounded p-2 text-theme-text font-mono focus:border-theme-warning outline-none mt-1" value={title} onChange={e=>setTitle(e.target.value)} placeholder="例：期中防禦測試" />
+                                <input type="text" className="w-full bg-theme-input border border-theme-border rounded p-2 text-theme-text font-mono focus:border-theme-warning outline-none mt-1 shadow-sm" value={title} onChange={e=>setTitle(e.target.value)} placeholder="例：期中防禦測試" />
                             </div>
                             
                             {!isBatchMode ? (
                                 <form onSubmit={addTempQuestion} className="bg-theme-input/50 p-4 rounded-lg border border-theme-border mb-4 space-y-3 animate-fade-in">
                                     <h4 className="text-sm font-bold text-theme-text/80">新增單題</h4>
-                                    <div><input type="text" placeholder="題目內容" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text text-sm" value={qText} onChange={e=>setQText(e.target.value)} required /></div>
-                                    <div><input type="text" placeholder="正確答案 (Correct)" className="w-full bg-theme-success/10 border border-theme-success/50 rounded p-2 text-theme-success text-sm" value={correct} onChange={e=>setCorrect(e.target.value)} required /></div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <input type="text" placeholder="錯誤選項 1" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm" value={w1} onChange={e=>setW1(e.target.value)} required />
-                                        <input type="text" placeholder="錯誤選項 2" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm" value={w2} onChange={e=>setW2(e.target.value)} required />
-                                        <input type="text" placeholder="錯誤選項 3" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm" value={w3} onChange={e=>setW3(e.target.value)} required />
+                                    <div><input type="text" placeholder="題目內容" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text text-sm shadow-sm" value={qText} onChange={e=>setQText(e.target.value)} required /></div>
+                                    <div><input type="text" placeholder="正確答案 (必須與下方選項之一完全相同)" className="w-full bg-theme-success/10 border border-theme-success/50 rounded p-2 text-theme-success text-sm shadow-sm placeholder-theme-success/50" value={correct} onChange={e=>setCorrect(e.target.value)} required /></div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="text" placeholder="選項一" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm shadow-sm" value={opt1} onChange={e=>setOpt1(e.target.value)} required />
+                                        <input type="text" placeholder="選項二" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm shadow-sm" value={opt2} onChange={e=>setOpt2(e.target.value)} required />
+                                        <input type="text" placeholder="選項三" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm shadow-sm" value={opt3} onChange={e=>setOpt3(e.target.value)} required />
+                                        <input type="text" placeholder="選項四" className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text/80 text-sm shadow-sm" value={opt4} onChange={e=>setOpt4(e.target.value)} required />
                                     </div>
-                                    <button type="submit" className="w-full py-1.5 bg-theme-border hover:bg-theme-muted text-white rounded text-xs font-mono">+ 加入暫存區</button>
+                                    <button type="submit" className="w-full py-1.5 bg-theme-border hover:bg-theme-muted text-white rounded text-xs font-mono transition">+ 加入暫存區</button>
                                 </form>
                             ) : (
                                 <form onSubmit={handleBatchImport} className="bg-theme-input/50 p-4 rounded-lg border border-theme-border mb-4 space-y-3 animate-fade-in">
-                                    <h4 className="text-sm font-bold text-theme-text/80">從 Excel/試算表貼上題庫</h4>
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-sm font-bold text-theme-text/80">從 Excel 貼上題庫</h4>
+                                        <button type="button" onClick={downloadSample} className="text-xs bg-theme-secondary/20 text-theme-secondary px-2 py-1 rounded hover:bg-theme-secondary hover:text-white transition">下載 CSV 範例檔</button>
+                                    </div>
                                     <textarea 
-                                        placeholder="請貼上資料，格式需為五欄：&#10;題目	正確答案	錯選1	錯選2	錯選3&#10;(支援 Tab 或逗號分隔)" 
-                                        className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text font-mono h-40 text-xs resize-none focus:border-theme-warning outline-none" 
+                                        placeholder="請貼上 Excel 資料，依序需為 6 欄：&#10;1.題目 2.答案 3.選項一 4.選項二 5.選項三 6.選項四&#10;(可直接從下載的範例檔修改後貼上)" 
+                                        className="w-full bg-theme-bg border border-theme-border rounded p-2 text-theme-text font-mono h-40 text-xs resize-none focus:border-theme-warning outline-none shadow-sm" 
                                         value={batchData} 
                                         onChange={e=>setBatchData(e.target.value)} 
                                         required 
                                     />
-                                    <p className="text-[10px] text-theme-muted font-mono">💡 請在 Excel 中依序排好 5 個欄位，然後直接複製貼上到這裡。</p>
-                                    <button type="submit" className="w-full py-2 bg-theme-warning/20 border border-theme-warning text-theme-warning hover:bg-theme-warning hover:text-white rounded text-xs font-mono transition">解析並加入暫存區</button>
+                                    <button type="submit" className="w-full py-2 bg-theme-warning/20 border border-theme-warning text-theme-warning hover:bg-theme-warning hover:text-white rounded text-xs font-mono transition shadow-sm">解析並加入暫存區</button>
                                 </form>
                             )}
 
-                            <div className="mb-4 flex justify-between items-center bg-theme-input p-3 rounded">
+                            <div className="mb-4 flex justify-between items-center bg-theme-input p-3 rounded border border-theme-border shadow-sm">
                                 <span className="text-sm text-theme-muted font-mono">暫存區題目數:</span>
                                 <span className="text-theme-warning font-bold text-xl">{currentQuestions.length}</span>
                             </div>
@@ -950,7 +987,7 @@
                             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                                 {exams.length === 0 ? <div className="text-theme-muted text-center py-6">目前無任何任務</div> : 
                                  exams.map(ex => (
-                                    <div key={ex.id} className="bg-theme-input/80 p-4 rounded-lg flex justify-between items-center border border-theme-border hover:border-theme-muted transition">
+                                    <div key={ex.id} className="bg-theme-input/80 p-4 rounded-lg flex justify-between items-center border border-theme-border hover:border-theme-muted transition shadow-sm">
                                         <div>
                                             <div className="text-theme-text font-bold">{ex.title}</div>
                                             <div className="text-xs text-theme-muted font-mono mt-1 flex gap-3">
@@ -1011,15 +1048,15 @@
                         <div className="glass-panel p-8 rounded-2xl neon-border">
                             <h3 className="text-xl font-cyber text-theme-primary mb-4">生成學生終端入口</h3>
                             <p className="text-theme-muted font-mono text-sm mb-6 leading-relaxed">您的 Firebase 金鑰已封裝入以下網址。請複製網址並轉換為 QR Code，展示於大螢幕讓學生掃描進入系統。</p>
-                            <div className="bg-theme-input border border-theme-border p-4 rounded-lg flex items-center gap-4 mb-4">
+                            <div className="bg-theme-input border border-theme-border p-4 rounded-lg flex items-center gap-4 mb-4 shadow-sm">
                                 <code className="text-xs text-theme-success break-all overflow-hidden max-h-20">{studentLink}</code>
                             </div>
-                            <button onClick={copyLink} className="w-full py-3 bg-theme-primary text-white font-bold rounded-lg transition font-cyber">[ 複製專屬網址 ]</button>
+                            <button onClick={copyLink} className="w-full py-3 bg-theme-primary hover:opacity-90 text-white font-bold rounded-lg transition font-cyber shadow-md">[ 複製專屬網址 ]</button>
                         </div>
                         <div className="glass-panel p-8 rounded-2xl border-theme-border">
                             <h3 className="text-xl font-cyber text-theme-secondary mb-4">系統重置與除錯</h3>
                             <p className="text-theme-muted font-mono text-sm mb-6">點擊下方按鈕將為您的資料庫注入一組示範用的學生與考卷資料。建議僅在初期測試時使用。</p>
-                            <button onClick={deployMockData} className="w-full py-3 border border-theme-secondary text-theme-secondary hover:bg-theme-secondary hover:text-white font-bold rounded-lg transition font-cyber">[ 注入測試資料 ]</button>
+                            <button onClick={deployMockData} className="w-full py-3 border border-theme-secondary text-theme-secondary hover:bg-theme-secondary hover:text-white font-bold rounded-lg transition font-cyber shadow-sm">[ 注入測試資料 ]</button>
                         </div>
                     </div>
                 );
@@ -1078,7 +1115,7 @@
                                     <div>
                                         <label className="block font-mono text-theme-primary text-xs mb-2">班級 (Class)</label>
                                         <select 
-                                            className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-primary font-mono"
+                                            className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-primary font-mono shadow-sm"
                                             value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSeat(''); }}
                                         >
                                             <option value="">-- 選擇班級 --</option>
@@ -1090,7 +1127,7 @@
                                         <div className="animate-fade-in">
                                             <label className="block font-mono text-theme-primary text-xs mb-2">座號 (Seat)</label>
                                             <select 
-                                                className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-primary font-mono"
+                                                className="w-full bg-theme-input border border-theme-border text-theme-text p-3 rounded-lg focus:outline-none focus:border-theme-primary font-mono shadow-sm"
                                                 value={selectedSeat} onChange={e => setSelectedSeat(e.target.value)}
                                             >
                                                 <option value="">-- 選擇座號 --</option>
@@ -1100,7 +1137,7 @@
                                     )}
 
                                     {targetStudent && (
-                                        <div className="bg-theme-primary/10 border border-theme-primary/50 p-4 rounded-lg text-center animate-fade-in mt-4">
+                                        <div className="bg-theme-primary/10 border border-theme-primary/50 p-4 rounded-lg text-center animate-fade-in mt-4 shadow-sm">
                                             <p className="text-theme-primary font-mono mb-1">身分已確認</p>
                                             <p className="text-theme-text font-bold text-xl">{targetStudent.name}</p>
                                         </div>
@@ -1109,8 +1146,8 @@
                                     <button 
                                         type="submit" 
                                         disabled={!targetStudent}
-                                        className={`w-full py-4 rounded-xl font-cyber font-bold text-lg transition shadow-lg mt-6
-                                            ${!targetStudent ? 'bg-theme-input text-theme-muted cursor-not-allowed border border-theme-border' : 'bg-theme-primary hover:opacity-90 text-white shadow-md'}`}
+                                        className={`w-full py-4 rounded-xl font-cyber font-bold text-lg transition shadow-md mt-6
+                                            ${!targetStudent ? 'bg-theme-input text-theme-muted cursor-not-allowed border border-theme-border' : 'bg-theme-primary hover:opacity-90 text-white'}`}
                                     >
                                         [ 進入測驗 ]
                                     </button>
@@ -1161,7 +1198,7 @@
                                             <h3 className="text-xl font-bold text-theme-text mb-2">{exam.title}</h3>
                                             <p className="text-theme-muted text-sm font-mono mb-4">總題數: {exam.questions?.length || 0}</p>
                                         </div>
-                                        <button onClick={() => setSelectedExam(exam)} className="self-end px-6 py-2 bg-theme-primary/20 text-theme-primary border border-theme-primary rounded font-cyber text-sm group-hover:bg-theme-primary group-hover:text-white transition">
+                                        <button onClick={() => setSelectedExam(exam)} className="self-end px-6 py-2 bg-theme-primary/20 text-theme-primary border border-theme-primary rounded font-cyber text-sm group-hover:bg-theme-primary group-hover:text-white transition shadow-sm">
                                             開始測驗 🚀
                                         </button>
                                     </div>
@@ -1317,7 +1354,7 @@
                             </div>
                             
                             {wrongAnswers.length > 0 ? (
-                                <div className="bg-theme-danger/10 border border-theme-danger/30 p-4 rounded-lg text-left">
+                                <div className="bg-theme-danger/10 border border-theme-danger/30 p-4 rounded-lg text-left shadow-sm">
                                     <h4 className="text-theme-danger font-bold mb-2 flex items-center gap-2">⚠️ 需要複習的單元 ({wrongAnswers.length})</h4>
                                     <ul className="text-theme-text/80 text-sm space-y-2 list-disc pl-5">
                                         {wrongAnswers.slice(0,3).map((w, i) => <li key={i}>{w.question}</li>)}
@@ -1325,12 +1362,12 @@
                                     </ul>
                                 </div>
                             ) : (
-                                <div className="bg-theme-success/10 border border-theme-success/30 p-4 rounded-lg text-theme-success font-bold text-xl">
+                                <div className="bg-theme-success/10 border border-theme-success/30 p-4 rounded-lg text-theme-success font-bold text-xl shadow-sm">
                                     完美通關！
                                 </div>
                             )}
                         </div>
-                        <button onClick={onBack} className="px-8 py-3 bg-theme-input hover:bg-theme-border text-theme-text rounded-lg font-cyber transition border border-theme-border">
+                        <button onClick={onBack} className="px-8 py-3 bg-theme-input hover:bg-theme-border text-theme-text rounded-lg font-cyber transition border border-theme-border shadow-sm">
                             返回大廳
                         </button>
                     </div>
@@ -1405,7 +1442,7 @@
                                     onClick={() => !isOptionsDisabled && handleAnswer(opt)}
                                     disabled={isOptionsDisabled}
                                     className={`glass-panel border-t-2 rounded-2xl flex items-center justify-center p-6 text-xl md:text-2xl font-bold transition duration-200 break-words h-full
-                                        ${isOptionsDisabled && !isReading ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1 active:scale-95'}
+                                        ${isOptionsDisabled && !isReading ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1 active:scale-95 shadow-sm'}
                                         ${isReading ? 'border-theme-border text-theme-muted' : 'border-theme-primary text-theme-text hover:bg-theme-primary/10 hover:border-theme-primary'}
                                     `}
                                 >
