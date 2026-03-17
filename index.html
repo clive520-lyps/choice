@@ -14,7 +14,6 @@
     <div id="root"></div>
 
     <script type="module">
-        // 擴增引入 updateDoc 與 writeBatch (批次寫入) 模組
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
@@ -242,7 +241,7 @@
                                     <ol className="text-slate-300 text-sm space-y-3 font-mono leading-relaxed list-decimal list-inside">
                                         <li>前往 <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 hover:underline">Firebase Console</a> 新增專案。</li>
                                         <li>左側選單進入 <b>Firestore Database</b>，建立資料庫並選擇「測試模式 (Test Mode)」。</li>
-                                        <li>左側選單進入 <b>Authentication</b>，<span className="text-red-400 font-bold">必須啟用「匿名登入」與「電子郵件/密碼」</span>兩種登入方式。(若未開啟將出現 auth/operation-not-allowed 錯誤)</li>
+                                        <li>左側選單進入 <b>Authentication</b>，<span className="text-red-400 font-bold">必須啟用「匿名登入」與「電子郵件/密碼」</span>兩種登入方式。</li>
                                         <li>前往「專案設定 &gt; 您的應用程式」，新增一個網頁應用程式 <code>&lt;/&gt;</code>。</li>
                                         <li>複製出現的 <code>const firebaseConfig = &#123; ... &#125;</code> 程式碼區塊。</li>
                                     </ol>
@@ -341,7 +340,7 @@
                             await signInAnonymously(auth);
                         } catch (e) {
                             if (e.code === 'auth/operation-not-allowed') {
-                                alert("⛔ 系統阻擋：操作不允許 (auth/operation-not-allowed)\n\n系統偵測到您的 Firebase 尚未開啟「匿名登入」權限。\n\n請老師前往 Firebase 後台：\n1. 點擊左側 Authentication (驗證)\n2. 進入 Sign-in method (登入方式) 頁籤\n3. 找到「匿名 (Anonymous)」並啟用它！");
+                                alert("⛔ 系統阻擋：操作不允許\n\n系統偵測到您的 Firebase 尚未開啟「匿名登入」權限。\n\n請老師前往 Firebase 後台：\n1. 點擊左側 Authentication (驗證)\n2. 進入 Sign-in method (登入方式) 頁籤\n3. 找到「匿名 (Anonymous)」並啟用它！");
                             } else {
                                 alert("學生登入失敗: " + e.message);
                             }
@@ -468,7 +467,7 @@
             // ==========================================
             function TeacherDashboard({ setView }) {
                 const { db, dbConfig } = useContext(AppContext);
-                const [activeTab, setActiveTab] = useState('students'); // 預設切換到學生管理
+                const [activeTab, setActiveTab] = useState('exams'); // 切換預設標籤測試用
                 const [scores, setScores] = useState([]);
                 
                 useEffect(() => {
@@ -556,21 +555,15 @@
                 );
             }
 
-            // 標籤 2: 學生管理 (強化版：批次匯入與編輯)
+            // 標籤 2: 學生管理
             function TabStudents() {
                 const { db } = useContext(AppContext);
                 const [students, setStudents] = useState([]);
-                
-                // 單筆新增狀態
                 const [newClass, setNewClass] = useState('');
                 const [newSeat, setNewSeat] = useState('');
                 const [newName, setNewName] = useState('');
-                
-                // 批次匯入狀態
                 const [isBatchMode, setIsBatchMode] = useState(false);
                 const [batchData, setBatchData] = useState('');
-
-                // 編輯狀態
                 const [editingId, setEditingId] = useState(null);
                 const [editData, setEditData] = useState({ classRoom: '', seatNo: '', name: '' });
 
@@ -579,7 +572,6 @@
                     const q = query(collection(db, getPath('students')));
                     const unsub = onSnapshot(q, (snapshot) => {
                         const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        // 排序：先班級後座號
                         list.sort((a,b) => {
                             if (a.classRoom !== b.classRoom) return String(a.classRoom).localeCompare(String(b.classRoom));
                             return parseInt(a.seatNo) - parseInt(b.seatNo);
@@ -589,7 +581,6 @@
                     return () => unsub();
                 }, [db]);
 
-                // 單筆新增
                 const handleAdd = async (e) => {
                     e.preventDefault();
                     if (!newClass || !newSeat || !newName) return;
@@ -603,7 +594,6 @@
                     } catch(err) { alert('新增失敗: ' + err.message); }
                 };
 
-                // 批次匯入 (使用 Firebase Batch)
                 const handleBatchImport = async (e) => {
                     e.preventDefault();
                     if (!batchData.trim()) return;
@@ -614,7 +604,6 @@
                         let count = 0;
                         
                         for (let line of lines) {
-                            // 支援 Tab (\t) 或逗號分隔的資料 (Excel 預設為 Tab)
                             const parts = line.split(/\t|,/).map(s => s.trim()).filter(s => s !== '');
                             if (parts.length >= 3) {
                                 const docRef = doc(collection(db, getPath('students')));
@@ -630,33 +619,23 @@
                         if (count > 0) {
                             await batch.commit();
                             alert(`✅ 成功匯入 ${count} 筆學生資料！`);
-                            setBatchData('');
-                            setIsBatchMode(false);
+                            setBatchData(''); setIsBatchMode(false);
                         } else {
-                            alert('找不到有效的資料格式。請確保每行格式為「班級 座號 姓名」並以 Tab 或逗號分隔。');
+                            alert('找不到有效的資料格式。');
                         }
-                    } catch (err) {
-                        alert('匯入失敗: ' + err.message);
-                    }
+                    } catch (err) { alert('匯入失敗: ' + err.message); }
                 };
 
-                // 刪除學生
                 const handleDelete = async (id, name) => {
                     if (!confirm(`確定要刪除學生 [${name}] 嗎？`)) return;
-                    try { 
-                        await deleteDoc(doc(db, getPath('students'), id)); 
-                    } catch(err) { 
-                        alert('刪除失敗: ' + err.message); 
-                    }
+                    try { await deleteDoc(doc(db, getPath('students'), id)); } catch(err) { alert('刪除失敗'); }
                 };
 
-                // 啟動編輯
                 const startEdit = (student) => {
                     setEditingId(student.id);
                     setEditData({ classRoom: student.classRoom, seatNo: student.seatNo, name: student.name });
                 };
 
-                // 儲存編輯
                 const saveEdit = async (id) => {
                     try {
                         await updateDoc(doc(db, getPath('students'), id), {
@@ -665,111 +644,53 @@
                             name: String(editData.name).trim()
                         });
                         setEditingId(null);
-                    } catch (err) {
-                        alert('更新失敗: ' + err.message);
-                    }
+                    } catch (err) { alert('更新失敗'); }
                 };
 
                 return (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* 左側：新增/匯入面板 */}
                         <div className="glass-panel p-6 rounded-2xl lg:col-span-1 border-cyan-500/30 h-fit">
                             <div className="flex justify-between items-center border-b border-slate-700 pb-2 mb-4">
-                                <h3 className="text-lg font-cyber text-cyan-400">
-                                    {isBatchMode ? '批次匯入' : '新增人員'}
-                                </h3>
-                                <button 
-                                    onClick={() => setIsBatchMode(!isBatchMode)} 
-                                    className="text-xs px-3 py-1.5 bg-slate-800 text-cyan-300 hover:text-white rounded font-mono border border-slate-600 hover:bg-slate-700 transition"
-                                >
-                                    切換為{isBatchMode ? '單筆新增' : '批次匯入'}
-                                </button>
+                                <h3 className="text-lg font-cyber text-cyan-400">{isBatchMode ? '批次匯入' : '新增人員'}</h3>
+                                <button onClick={() => setIsBatchMode(!isBatchMode)} className="text-xs px-3 py-1.5 bg-slate-800 text-cyan-300 hover:text-white rounded font-mono border border-slate-600">切換模式</button>
                             </div>
-
                             {!isBatchMode ? (
                                 <form onSubmit={handleAdd} className="space-y-4 animate-fade-in">
-                                    <div>
-                                        <label className="text-xs text-slate-400 font-mono">班級 (Class)</label>
-                                        <input type="text" placeholder="例: 101" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1 focus:border-cyan-500 outline-none" value={newClass} onChange={e=>setNewClass(e.target.value)} required />
-                                    </div>
+                                    <div><label className="text-xs text-slate-400 font-mono">班級</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1" value={newClass} onChange={e=>setNewClass(e.target.value)} required /></div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className="text-xs text-slate-400 font-mono">座號 (Seat)</label>
-                                            <input type="number" placeholder="例: 1" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1 focus:border-cyan-500 outline-none" value={newSeat} onChange={e=>setNewSeat(e.target.value)} required />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-400 font-mono">姓名 (Name)</label>
-                                            <input type="text" placeholder="例: 王小明" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1 focus:border-cyan-500 outline-none" value={newName} onChange={e=>setNewName(e.target.value)} required />
-                                        </div>
+                                        <div><label className="text-xs text-slate-400 font-mono">座號</label><input type="number" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1" value={newSeat} onChange={e=>setNewSeat(e.target.value)} required /></div>
+                                        <div><label className="text-xs text-slate-400 font-mono">姓名</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1" value={newName} onChange={e=>setNewName(e.target.value)} required /></div>
                                     </div>
-                                    <p className="text-xs text-slate-500 font-mono my-2">💡 提示：輸入未曾建立的班級，系統將自動產生該班級選項。</p>
-                                    <button type="submit" className="w-full py-3 bg-cyan-900/50 hover:bg-cyan-600 border border-cyan-500 text-white rounded font-cyber transition">
-                                        [ ADD DATA ]
-                                    </button>
+                                    <button type="submit" className="w-full py-3 bg-cyan-900/50 text-white rounded font-cyber transition">[ ADD DATA ]</button>
                                 </form>
                             ) : (
                                 <form onSubmit={handleBatchImport} className="space-y-4 animate-fade-in">
-                                    <div>
-                                        <label className="text-xs text-slate-400 font-mono">從 Excel/試算表貼上</label>
-                                        <textarea 
-                                            placeholder="請貼上資料，格式需為三欄（不需要標題行）：&#10;101	1	王小明&#10;101	2	陳大華&#10;(支援 Tab 或逗號分隔)" 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1 focus:border-purple-500 outline-none resize-none h-48 text-sm" 
-                                            value={batchData} 
-                                            onChange={e=>setBatchData(e.target.value)} 
-                                            required 
-                                        />
-                                    </div>
-                                    <p className="text-xs text-slate-500 font-mono my-2 leading-relaxed">💡 提示：直接從您的 Excel 或 Google Sheet 圈選「班級、座號、姓名」三欄內容後，複製並貼上到此框框即可。</p>
-                                    <button type="submit" className="w-full py-3 bg-purple-900/50 hover:bg-purple-600 border border-purple-500 text-white rounded font-cyber transition shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                                        [ BATCH IMPORT ]
-                                    </button>
+                                    <div><textarea placeholder="格式：班級 座號 姓名&#10;(支援 Tab 或逗號分隔)" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono mt-1 h-48 text-sm" value={batchData} onChange={e=>setBatchData(e.target.value)} required /></div>
+                                    <button type="submit" className="w-full py-3 bg-purple-900/50 text-white rounded font-cyber transition">[ BATCH IMPORT ]</button>
                                 </form>
                             )}
                         </div>
-
-                        {/* 右側：名單表格 */}
                         <div className="glass-panel p-6 rounded-2xl lg:col-span-2 border-slate-700">
                             <h3 className="text-lg font-cyber text-white mb-4 border-b border-slate-700 pb-2">人員資料庫 ({students.length})</h3>
                             <div className="max-h-[60vh] overflow-y-auto pr-2">
                                 <table className="w-full text-left font-mono text-sm">
-                                    <thead className="bg-slate-800 text-slate-400 sticky top-0 z-10">
-                                        <tr>
-                                            <th className="p-3 w-1/4">班級</th>
-                                            <th className="p-3 w-1/4">座號</th>
-                                            <th className="p-3 w-1/4">姓名</th>
-                                            <th className="p-3 w-1/4 text-right">操作</th>
-                                        </tr>
-                                    </thead>
+                                    <thead className="bg-slate-800 text-slate-400 sticky top-0 z-10"><tr><th className="p-3 w-1/4">班級</th><th className="p-3 w-1/4">座號</th><th className="p-3 w-1/4">姓名</th><th className="p-3 w-1/4 text-right">操作</th></tr></thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {students.length === 0 ? <tr><td colSpan="4" className="p-6 text-center text-slate-500">無人員資料</td></tr> : students.map(s => {
+                                        {students.map(s => {
                                             const isEditing = editingId === s.id;
                                             return (
                                                 <tr key={s.id} className="hover:bg-slate-800/50 transition">
                                                     {isEditing ? (
                                                         <>
-                                                            <td className="p-2">
-                                                                <input type="text" className="w-full bg-slate-950 border border-cyan-500 text-cyan-400 px-2 py-1 rounded outline-none" value={editData.classRoom} onChange={e=>setEditData({...editData, classRoom: e.target.value})} />
-                                                            </td>
-                                                            <td className="p-2">
-                                                                <input type="text" className="w-full bg-slate-950 border border-cyan-500 text-white px-2 py-1 rounded outline-none" value={editData.seatNo} onChange={e=>setEditData({...editData, seatNo: e.target.value})} />
-                                                            </td>
-                                                            <td className="p-2">
-                                                                <input type="text" className="w-full bg-slate-950 border border-cyan-500 text-white px-2 py-1 rounded outline-none" value={editData.name} onChange={e=>setEditData({...editData, name: e.target.value})} />
-                                                            </td>
-                                                            <td className="p-2 text-right whitespace-nowrap">
-                                                                <button onClick={() => saveEdit(s.id)} className="px-3 py-1.5 bg-green-600 text-white rounded transition text-xs mr-2 font-bold shadow-[0_0_10px_rgba(57,255,20,0.3)]">SAVE</button>
-                                                                <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-slate-700 text-slate-300 hover:text-white rounded transition text-xs">X</button>
-                                                            </td>
+                                                            <td className="p-2"><input type="text" className="w-full bg-slate-950 border border-cyan-500 text-cyan-400 px-2 py-1 rounded outline-none" value={editData.classRoom} onChange={e=>setEditData({...editData, classRoom: e.target.value})} /></td>
+                                                            <td className="p-2"><input type="text" className="w-full bg-slate-950 border border-cyan-500 text-white px-2 py-1 rounded outline-none" value={editData.seatNo} onChange={e=>setEditData({...editData, seatNo: e.target.value})} /></td>
+                                                            <td className="p-2"><input type="text" className="w-full bg-slate-950 border border-cyan-500 text-white px-2 py-1 rounded outline-none" value={editData.name} onChange={e=>setEditData({...editData, name: e.target.value})} /></td>
+                                                            <td className="p-2 text-right whitespace-nowrap"><button onClick={() => saveEdit(s.id)} className="px-3 py-1.5 bg-green-600 text-white rounded transition text-xs mr-2 font-bold">SAVE</button><button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-slate-700 text-slate-300 hover:text-white rounded transition text-xs">X</button></td>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <td className="p-3 text-cyan-400">{s.classRoom}</td>
-                                                            <td className="p-3">{s.seatNo}</td>
-                                                            <td className="p-3 text-white">{s.name}</td>
-                                                            <td className="p-3 text-right whitespace-nowrap">
-                                                                <button onClick={() => startEdit(s)} className="px-3 py-1 bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white rounded transition text-xs mr-2">EDIT</button>
-                                                                <button onClick={() => handleDelete(s.id, s.name)} className="px-3 py-1 bg-red-900/40 text-red-400 hover:bg-red-600 hover:text-white rounded transition text-xs">DEL</button>
-                                                            </td>
+                                                            <td className="p-3 text-cyan-400">{s.classRoom}</td><td className="p-3">{s.seatNo}</td><td className="p-3 text-white">{s.name}</td>
+                                                            <td className="p-3 text-right whitespace-nowrap"><button onClick={() => startEdit(s)} className="px-3 py-1 bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white rounded transition text-xs mr-2">EDIT</button><button onClick={() => handleDelete(s.id, s.name)} className="px-3 py-1 bg-red-900/40 text-red-400 hover:bg-red-600 hover:text-white rounded transition text-xs">DEL</button></td>
                                                         </>
                                                     )}
                                                 </tr>
@@ -783,17 +704,23 @@
                 );
             }
 
-            // 標籤 3: 試卷管理 (簡易版)
+            // 標籤 3: 試卷管理 (強化版：批次匯入題目)
             function TabExams() {
                 const { db } = useContext(AppContext);
                 const [exams, setExams] = useState([]);
                 const [title, setTitle] = useState('');
+                const [currentQuestions, setCurrentQuestions] = useState([]);
+                
+                // 單題新增狀態
                 const [qText, setQText] = useState('');
                 const [correct, setCorrect] = useState('');
                 const [w1, setW1] = useState('');
                 const [w2, setW2] = useState('');
                 const [w3, setW3] = useState('');
-                const [currentQuestions, setCurrentQuestions] = useState([]);
+
+                // 批次匯入狀態
+                const [isBatchMode, setIsBatchMode] = useState(false);
+                const [batchData, setBatchData] = useState('');
 
                 useEffect(() => {
                     if (!db) return;
@@ -803,16 +730,52 @@
                     return () => unsub();
                 }, [db]);
 
+                // 單題新增
                 const addTempQuestion = (e) => {
                     e.preventDefault();
                     if(!qText || !correct || !w1 || !w2 || !w3) return alert('請填滿所有題目與選項！');
                     setCurrentQuestions([...currentQuestions, {
                         id: Date.now(),
-                        question: qText,
-                        correct: correct,
-                        options: [correct, w1, w2, w3]
+                        question: qText.trim(),
+                        correct: correct.trim(),
+                        options: [correct.trim(), w1.trim(), w2.trim(), w3.trim()]
                     }]);
                     setQText(''); setCorrect(''); setW1(''); setW2(''); setW3('');
+                };
+
+                // 批次匯入題目
+                const handleBatchImport = (e) => {
+                    e.preventDefault();
+                    if (!batchData.trim()) return;
+
+                    const lines = batchData.trim().split('\n');
+                    let count = 0;
+                    const newQuestions = [];
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i];
+                        const parts = line.split(/\t|,/).map(s => s.trim()).filter(s => s !== '');
+                        
+                        // 確保至少有 5 個欄位：題目、正確答案、錯誤1、錯誤2、錯誤3
+                        if (parts.length >= 5) {
+                            newQuestions.push({
+                                id: Date.now() + i, // 避免 ID 衝突
+                                question: parts[0],
+                                correct: parts[1],
+                                options: [parts[1], parts[2], parts[3], parts[4]]
+                            });
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        setCurrentQuestions(prev => [...prev, ...newQuestions]);
+                        alert(`✅ 成功解析 ${count} 題！請點擊下方 [ DEPLOY MISSION ] 儲存發布任務。`);
+                        setBatchData('');
+                        setIsBatchMode(false);
+                    } else {
+                        alert('找不到有效的題目格式。\n請確保每行格式為「題目 正確答案 錯誤1 錯誤2 錯誤3」並以 Tab 或逗號分隔。');
+                    }
                 };
 
                 const saveExam = async () => {
@@ -820,7 +783,7 @@
                     if (currentQuestions.length === 0) return alert('請至少加入一題！');
                     try {
                         await addDoc(collection(db, getPath('exams')), {
-                            title: title,
+                            title: title.trim(),
                             isActive: true,
                             questions: currentQuestions
                         });
@@ -829,8 +792,8 @@
                     } catch(err) { alert('部署失敗: '+err.message); }
                 };
 
-                const deleteExam = async (id, title) => {
-                    if(!confirm(`確定要刪除任務 [${title}]？這將無法復原。`)) return;
+                const deleteExam = async (id, examTitle) => {
+                    if(!confirm(`確定要刪除任務 [${examTitle}]？這將無法復原。`)) return;
                     try { await deleteDoc(doc(db, getPath('exams'), id)); }
                     catch(err) { alert('刪除失敗'); }
                 };
@@ -838,30 +801,51 @@
                 return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="glass-panel p-6 rounded-2xl border-yellow-500/30">
-                            <h3 className="text-lg font-cyber text-yellow-400 mb-4 border-b border-slate-700 pb-2">任務建置引擎 (New Mission)</h3>
-                            <div className="mb-4">
-                                <label className="text-xs text-slate-400 font-mono">任務/試卷名稱</label>
-                                <input type="text" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono focus:border-yellow-500 outline-none" value={title} onChange={e=>setTitle(e.target.value)} placeholder="例：期中防禦測試" />
+                            <div className="flex justify-between items-center border-b border-slate-700 pb-2 mb-4">
+                                <h3 className="text-lg font-cyber text-yellow-400">任務建置引擎 (New Mission)</h3>
+                                <button 
+                                    onClick={() => setIsBatchMode(!isBatchMode)} 
+                                    className="text-xs px-3 py-1.5 bg-slate-800 text-yellow-500 hover:text-white rounded font-mono border border-slate-600 hover:bg-slate-700 transition"
+                                >
+                                    切換為{isBatchMode ? '單題新增' : '批次匯入'}
+                                </button>
                             </div>
-                            
-                            <form onSubmit={addTempQuestion} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-4 space-y-3">
-                                <h4 className="text-sm font-bold text-slate-300">新增單題</h4>
-                                <div>
-                                    <input type="text" placeholder="題目內容" className="w-full bg-black border border-slate-700 rounded p-2 text-white text-sm" value={qText} onChange={e=>setQText(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <input type="text" placeholder="正確答案 (Correct)" className="w-full bg-green-900/20 border border-green-700/50 rounded p-2 text-green-300 text-sm" value={correct} onChange={e=>setCorrect(e.target.value)} required />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <input type="text" placeholder="錯誤選項 1" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w1} onChange={e=>setW1(e.target.value)} required />
-                                    <input type="text" placeholder="錯誤選項 2" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w2} onChange={e=>setW2(e.target.value)} required />
-                                    <input type="text" placeholder="錯誤選項 3" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w3} onChange={e=>setW3(e.target.value)} required />
-                                </div>
-                                <button type="submit" className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-mono">+ 加入題庫</button>
-                            </form>
 
                             <div className="mb-4">
-                                <span className="text-xs text-slate-400">已暫存題目數: <span className="text-yellow-400 font-bold">{currentQuestions.length}</span></span>
+                                <label className="text-xs text-slate-400 font-mono">任務/試卷名稱 (必須填寫)</label>
+                                <input type="text" className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono focus:border-yellow-500 outline-none mt-1" value={title} onChange={e=>setTitle(e.target.value)} placeholder="例：期中防禦測試" />
+                            </div>
+                            
+                            {!isBatchMode ? (
+                                <form onSubmit={addTempQuestion} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-4 space-y-3 animate-fade-in">
+                                    <h4 className="text-sm font-bold text-slate-300">新增單題</h4>
+                                    <div><input type="text" placeholder="題目內容" className="w-full bg-black border border-slate-700 rounded p-2 text-white text-sm" value={qText} onChange={e=>setQText(e.target.value)} required /></div>
+                                    <div><input type="text" placeholder="正確答案 (Correct)" className="w-full bg-green-900/20 border border-green-700/50 rounded p-2 text-green-300 text-sm" value={correct} onChange={e=>setCorrect(e.target.value)} required /></div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input type="text" placeholder="錯誤選項 1" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w1} onChange={e=>setW1(e.target.value)} required />
+                                        <input type="text" placeholder="錯誤選項 2" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w2} onChange={e=>setW2(e.target.value)} required />
+                                        <input type="text" placeholder="錯誤選項 3" className="w-full bg-black border border-slate-700 rounded p-2 text-slate-300 text-sm" value={w3} onChange={e=>setW3(e.target.value)} required />
+                                    </div>
+                                    <button type="submit" className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-mono">+ 加入暫存區</button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleBatchImport} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-4 space-y-3 animate-fade-in">
+                                    <h4 className="text-sm font-bold text-slate-300">從 Excel/試算表貼上題庫</h4>
+                                    <textarea 
+                                        placeholder="請貼上資料，格式需為五欄：&#10;題目	正確答案	錯選1	錯選2	錯選3&#10;(支援 Tab 或逗號分隔)" 
+                                        className="w-full bg-black border border-slate-700 rounded p-2 text-white font-mono h-40 text-xs resize-none focus:border-yellow-500 outline-none" 
+                                        value={batchData} 
+                                        onChange={e=>setBatchData(e.target.value)} 
+                                        required 
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-mono">💡 請在 Excel 中依序排好 5 個欄位，然後直接複製貼上到這裡。</p>
+                                    <button type="submit" className="w-full py-2 bg-yellow-900/50 border border-yellow-500 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded text-xs font-mono transition">解析並加入暫存區</button>
+                                </form>
+                            )}
+
+                            <div className="mb-4 flex justify-between items-center bg-slate-800/50 p-3 rounded">
+                                <span className="text-sm text-slate-400 font-mono">暫存區題目數:</span>
+                                <span className="text-yellow-400 font-bold text-xl">{currentQuestions.length}</span>
                             </div>
 
                             <button onClick={saveExam} className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-cyber font-bold rounded-lg transition shadow-[0_0_15px_rgba(234,179,8,0.2)]">
@@ -870,14 +854,17 @@
                         </div>
 
                         <div className="glass-panel p-6 rounded-2xl border-slate-700">
-                            <h3 className="text-lg font-cyber text-white mb-4 border-b border-slate-700 pb-2">現行任務清單</h3>
-                            <div className="space-y-3">
+                            <h3 className="text-lg font-cyber text-white mb-4 border-b border-slate-700 pb-2">現行任務清單 ({exams.length})</h3>
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                                 {exams.length === 0 ? <div className="text-slate-500 text-center py-6">目前無任何任務</div> : 
                                  exams.map(ex => (
-                                    <div key={ex.id} className="bg-slate-800/50 p-4 rounded-lg flex justify-between items-center border border-slate-700">
+                                    <div key={ex.id} className="bg-slate-800/50 p-4 rounded-lg flex justify-between items-center border border-slate-700 hover:border-slate-500 transition">
                                         <div>
                                             <div className="text-white font-bold">{ex.title}</div>
-                                            <div className="text-xs text-slate-400 font-mono mt-1">題目數量: {ex.questions?.length || 0}</div>
+                                            <div className="text-xs text-slate-400 font-mono mt-1 flex gap-3">
+                                                <span>題數: <span className="text-cyan-400">{ex.questions?.length || 0}</span></span>
+                                                <span>狀態: <span className="text-green-400">ACTIVE</span></span>
+                                            </div>
                                         </div>
                                         <button onClick={()=>deleteExam(ex.id, ex.title)} className="px-3 py-1 bg-red-900/50 text-red-400 hover:bg-red-600 hover:text-white rounded transition text-xs font-mono">DELETE</button>
                                     </div>
