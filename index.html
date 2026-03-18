@@ -1,388 +1,630 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus 智慧測驗終端 | 2077 Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧測驗 | 老師中控台</title>
     
-    <meta name="theme-color" content="#020617">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind 自訂設定 (科技感色彩) -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        neon: { cyan: '#00f0ff', magenta: '#ff003c', dark: '#020617' }
+                        neon: { cyan: '#00E5FF', blue: '#2979FF', red: '#FF1744' },
+                        dark: { main: '#0B0F19', card: '#111827', border: '#1F2937' }
                     },
-                    animation: {
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'float': 'float 3s ease-in-out infinite',
-                        'scanline': 'scanline 8s linear infinite',
-                    },
-                    keyframes: {
-                        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
-                        scanline: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(100vh)' } }
+                    boxShadow: {
+                        'neon-cyan': '0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.3)',
+                        'neon-cyan-hover': '0 0 15px rgba(0, 229, 255, 0.8), 0 0 30px rgba(0, 229, 255, 0.5)',
+                        'neon-blue': '0 0 10px rgba(41, 121, 255, 0.5)',
+                        'neon-red': '0 0 10px rgba(255, 23, 68, 0.5)'
                     }
                 }
             }
         }
     </script>
 
+    <style>
+        /* 日光/暗黑模式 CSS 變數定義 */
+        :root {
+            /* 柔和的明亮模式 (日光航艦) */
+            --bg-color: #F8FAFC; /* Slate-50 */
+            --text-main: #0F172A; /* Slate-900 */
+            --grid-color: rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(203, 213, 225, 0.8); /* Slate-300 */
+            --scrollbar-track: #F8FAFC;
+            --scrollbar-thumb: #CBD5E1;
+        }
+        .dark {
+            /* 經典科幻暗黑模式 */
+            --bg-color: #0B0F19;
+            --text-main: #E5E7EB;
+            --grid-color: rgba(0, 229, 255, 0.03);
+            --glass-bg: rgba(17, 24, 39, 0.7);
+            --glass-border: rgba(31, 41, 55, 0.8);
+            --scrollbar-track: #0B0F19;
+            --scrollbar-thumb: #1F2937;
+        }
+
+        /* 未來感網格背景與滾動條美化 */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Noto Sans TC', sans-serif;
+            transition: background-color 0.3s, color 0.3s, background-image 0.3s;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00E5FF; }
+        
+        /* 玻璃擬物化卡片 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            transition: background 0.3s, border 0.3s;
+        }
+    </style>
+
+    <!-- Import Maps 設定 React 與 Firebase -->
     <script type="importmap">
         {
             "imports": {
                 "react": "https://esm.sh/react@18.2.0",
                 "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-                "firebase/app": "https://esm.sh/firebase@10.8.0/app",
-                "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore"
+                "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+                "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
             }
         }
     </script>
     
+    <!-- 引入 Babel 用於編譯 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@400;700&display=swap');
-        
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #020617; /* 深淵黑 */
-            color: #e2e8f0;
-            overflow-x: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .font-cyber { font-family: 'Orbitron', sans-serif; }
-
-        /* 全息網格背景 */
-        .bg-grid {
-            background-image: 
-                linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -2;
-        }
-
-        /* 掃描線特效 */
-        .scanline {
-            width: 100%; height: 200px;
-            background: linear-gradient(to bottom, transparent, rgba(0, 240, 255, 0.1), transparent);
-            position: fixed; top: 0; left: 0;
-            z-index: -1; pointer-events: none;
-        }
-
-        /* 玻璃擬物化 (Glassmorphism) 卡片 */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.05), inset 0 0 20px rgba(0, 240, 255, 0.02);
-        }
-
-        /* 霓虹發光字體與邊框 */
-        .text-glow-cyan { text-shadow: 0 0 10px rgba(0, 240, 255, 0.7); }
-        .text-glow-magenta { text-shadow: 0 0 10px rgba(255, 0, 60, 0.7); }
-        
-        .btn-cyber {
-            position: relative; overflow: hidden; transition: all 0.3s ease;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
-        }
-        .btn-cyber:hover {
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
-            transform: translateY(-2px);
-        }
-        .btn-cyber::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: all 0.5s ease;
-        }
-        .btn-cyber:hover::before { left: 100%; }
-
-        /* 雷達掃描 Loading 動畫 */
-        .radar-spinner {
-            width: 60px; height: 60px; border-radius: 50%;
-            border: 2px solid rgba(0, 240, 255, 0.2);
-            border-top-color: #00f0ff;
-            animation: spin 1s linear infinite, glow 2s ease-in-out infinite alternate;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes glow { 100% { box-shadow: 0 0 20px #00f0ff; } }
-
-        /* Toast 進入動畫 */
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .toast-enter { animation: slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-    </style>
 </head>
 <body>
-    <div class="bg-grid"></div>
-    <div class="scanline animate-scanline"></div>
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
+        import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
+        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon } from 'lucide-react';
+        
+        // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
-        import { getFirestore } from 'firebase/firestore';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 
-        // --- 核心系統 Context (UI & Firebase) ---
-        const SystemContext = createContext();
-        const useSystem = () => useContext(SystemContext);
-
-        // --- 頂級 Toast 提示系統元件 ---
-        const ToastProvider = ({ children, addToast }) => (
-            <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none">
-                {children}
-            </div>
-        );
-
-        const Toast = ({ message, type }) => {
-            const isError = type === 'error';
-            return (
-                <div className={`toast-enter glass-panel border-l-4 p-4 rounded-r-lg shadow-lg flex items-center gap-3 w-80 pointer-events-auto
-                    ${isError ? 'border-neon-magenta shadow-[0_0_15px_rgba(255,0,60,0.3)]' : 'border-neon-cyan shadow-[0_0_15px_rgba(0,240,255,0.3)]'}`}>
-                    <span className={`text-2xl ${isError ? 'text-neon-magenta text-glow-magenta' : 'text-neon-cyan text-glow-cyan'}`}>
-                        {isError ? '⚠️' : '⚡'}
-                    </span>
-                    <p className="text-sm font-medium text-slate-200">{message}</p>
-                </div>
-            );
+        // 指揮官提供的 Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9NJXQwdKweStTbATahldDgvtbuGclo34",
+            authDomain: "test-reading-71839.firebaseapp.com",
+            projectId: "test-reading-71839",
+            storageBucket: "test-reading-71839.firebasestorage.app",
+            messagingSenderId: "499192051513",
+            appId: "1:499192051513:web:777c873e938464e2995ae8"
         };
 
-        // --- 共用 UI 元件 ---
-        const CyberLoader = ({ text = "SYSTEM LOADING..." }) => (
-            <div className="flex flex-col items-center justify-center h-full gap-6 animate-float">
-                <div className="radar-spinner"></div>
-                <p className="font-cyber text-neon-cyan text-glow-cyan tracking-widest animate-pulse">{text}</p>
-            </div>
-        );
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // --- 模組 1：系統初始化艙 (Bootloader) ---
-        function Bootloader({ onConfigSaved }) {
-            const [inputConfig, setInputConfig] = useState('');
-            const { showToast } = useSystem();
+        // --- 全域 Toast 系統 (高科技提示) ---
+        const ToastContext = createContext();
+        const ToastProvider = ({ children }) => {
+            const [toasts, setToasts] = useState([]);
+            const showToast = (message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+            };
+            return (
+                <ToastContext.Provider value={showToast}>
+                    {children}
+                    <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none">
+                        {toasts.map(t => (
+                            <div key={t.id} className={`flex items-center gap-3 px-6 py-3 rounded-lg bg-white/95 dark:glass-card border-l-4 shadow-lg transform transition-all animate-[slideIn_0.3s_ease-out] ${t.type === 'error' ? 'border-red-500 dark:border-neon-red shadow-md dark:shadow-neon-red text-slate-800 dark:text-red-100' : 'border-cyan-500 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan text-slate-800 dark:text-cyan-100'}`}>
+                                {t.type === 'error' ? <ShieldAlert size={20} className="text-red-500 dark:text-neon-red" /> : <CheckCircle2 size={20} className="text-cyan-600 dark:text-neon-cyan" />}
+                                <span className="font-medium tracking-wider">{t.message}</span>
+                            </div>
+                        ))}
+                    </div>
+                </ToastContext.Provider>
+            );
+        };
+        const useToast = () => useContext(ToastContext);
 
-            const handleSave = () => {
+        // --- 工具函數：CSV 下載與解析 ---
+        const downloadCSV = (filename, content) => {
+            const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        };
+
+        // --- 組件：登入與註冊介面 ---
+        const AuthScreen = ({ isDarkMode, toggleTheme }) => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const showToast = useToast();
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setLoading(true);
                 try {
-                    // 嘗試解析使用者貼上的 JSON
-                    let configObj = inputConfig;
-                    if (typeof inputConfig === 'string') {
-                        // 移除可能複製到的變數宣告，只取 {} 內容
-                        const match = inputConfig.match(/\{[\s\S]*\}/);
-                        if (!match) throw new Error("無效的格式");
-                        // 替換單引號為雙引號，並處理沒有引號的 key (簡易處理)
-                        let jsonStr = match[0].replace(/'/g, '"').replace(/(\w+):/g, '"$1":');
-                        configObj = JSON.parse(jsonStr);
+                    if (isLogin) {
+                        await signInWithEmailAndPassword(auth, email, password);
+                        showToast("系統登入成功，歡迎指揮官", "success");
+                    } else {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        showToast("系統註冊完成，核心權限已開通", "success");
                     }
-                    
-                    if (!configObj.apiKey || !configObj.projectId) throw new Error("缺少必要欄位");
-                    
-                    // 加密並存入 localStorage
-                    const encoded = btoa(JSON.stringify(configObj));
-                    localStorage.setItem('nexus_db_config', encoded);
-                    showToast("資料庫連線代碼已寫入核心", "success");
-                    onConfigSaved(configObj);
-                } catch (e) {
-                    showToast("解析失敗，請確認 Firebase Config 格式是否正確", "error");
-                    console.error(e);
+                } catch (error) {
+                    showToast(error.message, "error");
                 }
+                setLoading(false);
             };
 
             return (
-                <div className="flex flex-col items-center justify-center h-screen p-4">
-                    <div className="glass-panel p-8 md:p-12 rounded-2xl w-full max-w-2xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-50"></div>
+                <div className="min-h-screen flex items-center justify-center p-4 relative">
+                    <button onClick={toggleTheme} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
+                        {isDarkMode ? <Sun size={24} className="hover:text-yellow-400" /> : <Moon size={24} className="hover:text-indigo-600" />}
+                    </button>
+                    
+                    <div className="glass-card p-10 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 dark:via-neon-cyan to-transparent opacity-50"></div>
                         
-                        <div className="text-center mb-8">
-                            <h1 className="font-cyber text-3xl md:text-5xl text-white mb-2 tracking-wider">NEXUS <span className="text-neon-cyan text-glow-cyan">CORE</span></h1>
-                            <p className="text-slate-400 text-sm">偵測到未知的執行環境，請指揮官輸入 Firebase 核心配置金鑰以建立神經連結。</p>
+                        <div className="text-center mb-10">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-dark-card border border-cyan-500/30 dark:border-neon-cyan/30 shadow-md dark:shadow-neon-cyan mb-4">
+                                <Zap className="text-cyan-600 dark:text-neon-cyan" size={40} />
+                            </div>
+                            <h1 className="text-3xl font-black tracking-widest text-slate-900 dark:text-white">智慧測驗系統</h1>
+                            <p className="text-cyan-700 dark:text-cyan-500/80 mt-2 font-mono text-sm uppercase tracking-widest">Teacher Terminal</p>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="relative">
-                                <label className="block text-neon-cyan text-xs font-cyber tracking-widest mb-2 ml-1">FIREBASE_CONFIG (JSON)</label>
-                                <textarea 
-                                    className="w-full h-48 bg-slate-950/80 border border-slate-700 rounded-xl p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan transition-colors resize-none placeholder-slate-700"
-                                    placeholder="const firebaseConfig = {&#10;  apiKey: '...',&#10;  authDomain: '...',&#10;  projectId: '...',&#10;  ...&#10;};"
-                                    value={inputConfig}
-                                    onChange={(e) => setInputConfig(e.target.value)}
-                                ></textarea>
+                        <form onSubmit={handleAuth} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">管理員信箱 (Email)</label>
+                                <input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} />
                             </div>
-                            
-                            <button onClick={handleSave} className="w-full btn-cyber bg-slate-800 border border-neon-cyan text-neon-cyan py-4 rounded-xl font-cyber tracking-widest text-lg">
-                                INITIATE CONNECTION
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label>
+                                <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
+                            </div>
+                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover transition-all duration-300 flex justify-center items-center">
+                                {loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}
+                            </button>
+                        </form>
+                        
+                        <div className="mt-6 text-center">
+                            <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition">
+                                {isLogin ? '尚未擁有權限？點此註冊' : '已有管理權限？點此登入'}
                             </button>
                         </div>
                     </div>
                 </div>
             );
-        }
+        };
 
-        // --- 模組 2：主入口選擇與教師授權 (Role Select & Auth) ---
-        function RoleSelect({ setView }) {
-            const [showPinModal, setShowPinModal] = useState(false);
-            const [pinInput, setPinInput] = useState('');
-            const { showToast } = useSystem();
-            
-            const handleTeacherAccess = () => {
-                const savedPin = localStorage.getItem('nexus_admin_pin');
-                if (!savedPin) {
-                    setView('admin-setup'); // 首次設定
-                } else {
-                    setShowPinModal(true); // 驗證
-                }
-            };
+        // --- 組件：班級與學生管理 ---
+        const ClassManager = ({ user }) => {
+            const [classes, setClasses] = useState([]);
+            const [students, setStudents] = useState([]);
+            const [newClassName, setNewClassName] = useState('');
+            const [selectedClass, setSelectedClass] = useState(null);
+            const showToast = useToast();
 
-            const verifyPin = () => {
-                const savedPin = localStorage.getItem('nexus_admin_pin');
-                if (btoa(pinInput) === savedPin) {
-                    showToast("授權成功，歡迎指揮官", "success");
-                    setView('teacher-dashboard');
-                } else {
-                    showToast("存取被拒絕：PIN 碼無效", "error");
-                    setPinInput('');
-                }
-            };
-
-            return (
-                <div className="flex flex-col items-center justify-center h-screen p-4">
-                    <div className="text-center mb-12 animate-float">
-                        <h1 className="font-cyber text-4xl md:text-6xl text-white tracking-widest mb-4">
-                            NEXUS <span className="text-neon-cyan text-glow-cyan">TERMINAL</span>
-                        </h1>
-                        <p className="text-slate-400">請選擇您的神經連結身分</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-4">
-                        {/* 學生卡片 */}
-                        <button onClick={() => setView('student-portal')} className="glass-panel p-10 rounded-3xl flex flex-col items-center justify-center group transition transform hover:-translate-y-2 hover:border-neon-cyan">
-                            <div className="text-6xl mb-6 group-hover:scale-110 transition duration-300 drop-shadow-[0_0_15px_rgba(0,240,255,0.5)]">🧑‍🚀</div>
-                            <span className="text-2xl font-bold text-white mb-2 tracking-widest">學員連結</span>
-                            <span className="text-slate-400 text-sm">進入測驗與訓練模擬器</span>
-                        </button>
-
-                        {/* 教師卡片 */}
-                        <button onClick={handleTeacherAccess} className="glass-panel p-10 rounded-3xl flex flex-col items-center justify-center group transition transform hover:-translate-y-2 hover:border-neon-magenta">
-                            <div className="text-6xl mb-6 group-hover:scale-110 transition duration-300 drop-shadow-[0_0_15px_rgba(255,0,60,0.5)]">👁️‍🗨️</div>
-                            <span className="text-2xl font-bold text-white mb-2 tracking-widest">指揮官授權</span>
-                            <span className="text-slate-400 text-sm">進入中央控制台與數據分析</span>
-                        </button>
-                    </div>
-
-                    {/* PIN 碼驗證彈跳窗 */}
-                    {showPinModal && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50">
-                            <div className="glass-panel border-neon-magenta p-8 rounded-2xl w-80 text-center">
-                                <h3 className="font-cyber text-neon-magenta mb-4 tracking-widest">ADMIN OVERRIDE</h3>
-                                <input 
-                                    type="password" maxLength="4" placeholder="----"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-center text-2xl tracking-[1em] text-white focus:border-neon-magenta outline-none mb-6"
-                                    value={pinInput} onChange={e => setPinInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && verifyPin()}
-                                />
-                                <div className="flex gap-4">
-                                    <button onClick={() => setShowPinModal(false)} className="flex-1 py-2 text-slate-400 hover:text-white transition">取消</button>
-                                    <button onClick={verifyPin} className="flex-1 py-2 bg-neon-magenta/20 text-neon-magenta border border-neon-magenta rounded-lg hover:bg-neon-magenta hover:text-white transition font-cyber">DECRYPT</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        // --- 模組 3：主控台元件 (App) ---
-        function App() {
-            const [firebaseConfig, setFirebaseConfig] = useState(null);
-            const [db, setDb] = useState(null);
-            const [view, setView] = useState('loading'); // loading, bootloader, role-select, etc.
-            const [toasts, setToasts] = useState([]);
-
-            const showToast = (message, type = 'info') => {
-                const id = Date.now();
-                setToasts(prev => [...prev, { id, message, type }]);
-                setTimeout(() => {
-                    setToasts(prev => prev.filter(t => t.id !== id));
-                }, 4000); // 4秒後自動消失
-            };
-
-            // 系統啟動：檢查本機是否有設定檔
+            // 監聽班級資料
             useEffect(() => {
-                const initSystem = () => {
-                    const savedConfig = localStorage.getItem('nexus_db_config');
-                    if (savedConfig) {
-                        try {
-                            const parsedConfig = JSON.parse(atob(savedConfig));
-                            setFirebaseConfig(parsedConfig);
-                            
-                            // 初始化 Firebase 引擎
-                            const app = initializeApp(parsedConfig);
-                            const firestore = getFirestore(app);
-                            setDb(firestore);
-                            
-                            showToast("神經連結已重新建立", "success");
-                            setTimeout(() => setView('role-select'), 1000);
-                        } catch (e) {
-                            console.error("配置損毀", e);
-                            localStorage.removeItem('nexus_db_config');
-                            setView('bootloader');
+                const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt));
+                });
+                return () => unsub();
+            }, [user.uid]);
+
+            // 監聽選定班級的學生資料
+            useEffect(() => {
+                if (!selectedClass) { setStudents([]); return; }
+                const q = query(collection(db, 'students'), where('classId', '==', selectedClass.id));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    // 轉為數字排序座號
+                    let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo));
+                    setStudents(list);
+                });
+                return () => unsub();
+            }, [selectedClass]);
+
+            const addClass = async () => {
+                if (!newClassName.trim()) return;
+                try {
+                    await addDoc(collection(db, 'classes'), { name: newClassName, teacherId: user.uid, createdAt: Date.now() });
+                    setNewClassName('');
+                    showToast("班級建立成功");
+                } catch (e) { showToast("建立失敗: " + e.message, "error"); }
+            };
+
+            const deleteClass = async (classId) => {
+                if (!confirm("警告：確定要刪除此班級嗎？關聯的學生將會成為孤兒資料。")) return;
+                await deleteDoc(doc(db, 'classes', classId));
+                if(selectedClass?.id === classId) setSelectedClass(null);
+                showToast("班級已刪除", "success");
+            };
+
+            const deleteStudent = async (studentId) => {
+                await deleteDoc(doc(db, 'students', studentId));
+                showToast("學生資料已移除");
+            };
+
+            const handleStudentCSVUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const text = event.target.result;
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    let successCount = 0;
+                    
+                    for (let i = 1; i < lines.length; i++) { // 跳過標題列
+                        const [seatNo, name] = lines[i].split(',').map(s => s.trim());
+                        if (seatNo && name) {
+                            await addDoc(collection(db, 'students'), {
+                                classId: selectedClass.id, teacherId: user.uid,
+                                seatNo, name, createdAt: Date.now()
+                            });
+                            successCount++;
                         }
-                    } else {
-                        setView('bootloader');
                     }
+                    showToast(`批次匯入完成，共新增 ${successCount} 筆資料`, "success");
+                    e.target.value = ''; // Reset input
                 };
-                
-                // 模擬系統啟動特效延遲
-                setTimeout(initSystem, 1500);
-            }, []);
+                reader.readAsText(file);
+            };
+
+            const downloadStudentSample = () => {
+                downloadCSV("學生匯入範例.csv", "座號,姓名\n1,王小明\n2,陳小美\n3,張大華");
+            };
 
             return (
-                <SystemContext.Provider value={{ db, showToast, setView }}>
-                    <ToastProvider>
-                        {toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} />)}
-                    </ToastProvider>
-                    
-                    <main className="h-screen w-screen overflow-hidden text-slate-200">
-                        {view === 'loading' && <CyberLoader />}
-                        {view === 'bootloader' && <Bootloader onConfigSaved={(cfg) => {
-                            const app = initializeApp(cfg);
-                            setDb(getFirestore(app));
-                            setView('role-select');
-                        }} />}
-                        {view === 'role-select' && <RoleSelect setView={setView} />}
-                        
-                        {/* 尚未實作的區域，先用 Placeholder 代替 */}
-                        {view === 'admin-setup' && (
-                            <div className="flex flex-col items-center justify-center h-full p-4">
-                                <div className="glass-panel border-neon-magenta p-8 rounded-2xl w-full max-w-md text-center">
-                                    <h2 className="font-cyber text-2xl text-neon-magenta mb-4">INITIALIZE PIN</h2>
-                                    <p className="text-sm text-slate-400 mb-6">請設定 4 位數指揮官密碼</p>
-                                    <input type="password" id="newPin" maxLength="4" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-center text-2xl tracking-[1em] text-white focus:border-neon-magenta outline-none mb-6" placeholder="----" />
-                                    <button onClick={() => {
-                                        const pin = document.getElementById('newPin').value;
-                                        if(pin.length !== 4) return showToast("請輸入完整的 4 位數 PIN 碼", "error");
-                                        localStorage.setItem('nexus_admin_pin', btoa(pin));
-                                        showToast("安全憑證設定完成", "success");
-                                        setView('teacher-dashboard');
-                                    }} className="w-full btn-cyber bg-slate-800 border border-neon-magenta text-neon-magenta py-3 rounded-xl font-cyber">SAVE CREDENTIALS</button>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
+                    {/* 左側：班級列表 */}
+                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-blue-500 dark:border-t-neon-blue">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><Users className="text-blue-600 dark:text-neon-blue" /> 班級中樞</h2>
+                        <div className="flex gap-2 mb-6">
+                            <input type="text" placeholder="輸入班級名稱 (如: 101)" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-neon-blue outline-none" value={newClassName} onChange={e=>setNewClassName(e.target.value)} />
+                            <button onClick={addClass} className="bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue px-4 rounded-lg font-bold transition flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={18}/> 新增</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                            {classes.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">尚無班級，請先新增</p>}
+                            {classes.map(c => (
+                                <div key={c.id} onClick={() => setSelectedClass(c)} className={`p-4 rounded-xl cursor-pointer transition flex justify-between items-center group border ${selectedClass?.id === c.id ? 'bg-blue-50 border-blue-400 shadow-sm dark:bg-neon-blue/10 dark:border-neon-blue dark:shadow-neon-blue text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
+                                    <span className="font-bold text-lg">{c.name} 班</span>
+                                    <button onClick={(e) => { e.stopPropagation(); deleteClass(c.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={18} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 右側：學生名單 */}
+                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
+                        {!selectedClass ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
+                                <Users size={60} className="mb-4 opacity-20" />
+                                <p>請從左側選擇一個班級以管理學生</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col h-full fade-in">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-blue-700 dark:text-neon-blue">{selectedClass.name} 班 - 學生名單</h2>
+                                    <div className="flex gap-3">
+                                        <button onClick={downloadStudentSample} className="flex items-center gap-1 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 transition"><Download size={16}/> 範例下載</button>
+                                        <label className="flex items-center gap-1 text-sm bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:hover:bg-cyan-900/80 text-cyan-700 dark:text-neon-cyan px-3 py-2 rounded-lg border border-cyan-300 dark:border-neon-cyan/50 cursor-pointer transition dark:shadow-[0_0_10px_rgba(0,229,255,0.2)]">
+                                            <Upload size={16}/> 批次匯入
+                                            <input type="file" accept=".csv" className="hidden" onChange={handleStudentCSVUpload} />
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white dark:bg-dark-main rounded-xl border border-slate-200 dark:border-gray-700 flex-1 overflow-hidden flex flex-col">
+                                    <div className="grid grid-cols-4 bg-slate-100 dark:bg-gray-800/50 p-4 text-sm font-bold text-slate-600 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+                                        <div className="col-span-1">座號</div>
+                                        <div className="col-span-2">姓名</div>
+                                        <div className="col-span-1 text-right">操作</div>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto">
+                                        {students.length === 0 ? <div className="p-10 text-center text-slate-500 dark:text-gray-500">目前無學生資料，請使用批次匯入</div> :
+                                            students.map(s => (
+                                                <div key={s.id} className="grid grid-cols-4 p-4 border-b border-slate-100 dark:border-gray-800 items-center hover:bg-slate-50 dark:hover:bg-gray-800/30 transition text-slate-800 dark:text-gray-200">
+                                                    <div className="col-span-1 font-mono text-cyan-700 dark:text-neon-cyan font-bold">{s.seatNo}</div>
+                                                    <div className="col-span-2 font-medium">{s.name}</div>
+                                                    <div className="col-span-1 text-right">
+                                                        <button onClick={()=>deleteStudent(s.id)} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red transition"><Trash2 size={18}/></button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         )}
-                        {view === 'teacher-dashboard' && <CyberLoader text="ACCESSING ADMIN DASHBOARD..." />}
-                        {view === 'student-portal' && <CyberLoader text="CONNECTING TO SIMULATOR..." />}
-                    </main>
-                </SystemContext.Provider>
+                    </div>
+                </div>
             );
-        }
+        };
+
+        // --- 組件：試卷兵工廠 (核心) ---
+        const ExamFactory = ({ user }) => {
+            const [exams, setExams] = useState([]);
+            const [newExamTitle, setNewExamTitle] = useState('');
+            const [selectedExam, setSelectedExam] = useState(null);
+            const showToast = useToast();
+
+            // 監聽試卷資料
+            useEffect(() => {
+                const q = query(collection(db, 'exams'), where('teacherId', '==', user.uid));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    setExams(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt));
+                });
+                return () => unsub();
+            }, [user.uid]);
+
+            const createExam = async () => {
+                if (!newExamTitle.trim()) return;
+                try {
+                    await addDoc(collection(db, 'exams'), {
+                        title: newExamTitle, teacherId: user.uid,
+                        isPublished: false, drawCount: 20, allowMultipleAttempts: true,
+                        questions: [], createdAt: Date.now()
+                    });
+                    setNewExamTitle(''); showToast("試卷架構已建立，請繼續匯入題庫");
+                } catch (e) { showToast(e.message, "error"); }
+            };
+
+            const deleteExam = async (examId) => {
+                if(!confirm("確定要銷毀此試卷嗎？此操作不可逆！")) return;
+                await deleteDoc(doc(db, 'exams', examId));
+                if(selectedExam?.id === examId) setSelectedExam(null);
+                showToast("試卷已銷毀", "success");
+            };
+
+            const togglePublish = async (exam) => {
+                await updateDoc(doc(db, 'exams', exam.id), { isPublished: !exam.isPublished });
+                showToast(exam.isPublished ? "試卷已下架" : "試卷已成功派送至學生端！", "success");
+            };
+
+            const updateExamSetting = async (field, value) => {
+                if(!selectedExam) return;
+                await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: value });
+                showToast("設定已同步儲存");
+            };
+
+            const handleQuestionCSVUpload = (e) => {
+                if(!selectedExam) return;
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const text = event.target.result;
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    const newQuestions = [];
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const cols = lines[i].split(',').map(s => s.trim());
+                        if (cols.length >= 6) {
+                            newQuestions.push({
+                                question: cols[0], correct: cols[1],
+                                options: [cols[2], cols[3], cols[4], cols[5]]
+                            });
+                        }
+                    }
+                    if(newQuestions.length > 0) {
+                        await updateDoc(doc(db, 'exams', selectedExam.id), { questions: newQuestions });
+                        showToast(`題庫匯入成功，共 ${newQuestions.length} 題`, "success");
+                    } else {
+                        showToast("無法解析題庫，請檢查格式", "error");
+                    }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            };
+
+            const downloadExamSample = () => {
+                downloadCSV("試卷題庫範例.csv", "題目,正確答案(輸入選項內容或1~4數字),選項1,選項2,選項3,選項4\n「躊躇」的意思是什麼？,1,猶豫不決,非常快樂,走路很快,大聲說話\n蘋果的英文是什麼？,Apple,Banana,Apple,Orange,Grape");
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
+                    {/* 左側：試卷庫 */}
+                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-cyan-500 dark:border-t-neon-cyan">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><BookOpen className="text-cyan-600 dark:text-neon-cyan" /> 試卷庫</h2>
+                        <div className="flex gap-2 mb-6">
+                            <input type="text" placeholder="新建試卷名稱" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 dark:focus:border-neon-cyan outline-none" value={newExamTitle} onChange={e=>setNewExamTitle(e.target.value)} />
+                            <button onClick={createExam} className="bg-cyan-100 hover:bg-cyan-200 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-cyan-700 dark:text-neon-cyan px-4 rounded-lg font-bold transition flex items-center gap-1 border border-cyan-200 dark:border-neon-cyan/50"><Plus size={18}/> 建立</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                            {exams.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">資料庫空虛，請建立試卷</p>}
+                            {exams.map(ex => (
+                                <div key={ex.id} onClick={() => setSelectedExam(ex)} className={`p-4 rounded-xl cursor-pointer transition flex flex-col gap-2 border group ${selectedExam?.id === ex.id ? 'bg-cyan-50 border-cyan-400 shadow-sm dark:bg-neon-cyan/10 dark:border-neon-cyan dark:shadow-neon-cyan text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold">{ex.title}</span>
+                                        <div className="flex items-center gap-2">
+                                            {ex.isPublished ? <span className="text-[10px] bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main px-2 py-1 rounded font-bold">已派送</span> : <span className="text-[10px] bg-slate-300 dark:bg-gray-700 text-slate-600 dark:text-gray-300 px-2 py-1 rounded font-bold">草稿</span>}
+                                            <button onClick={(e) => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-gray-500">題庫：{ex.questions?.length || 0} 題</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 右側：試卷編輯與派送中心 */}
+                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
+                        {!selectedExam ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
+                                <Settings size={60} className="mb-4 opacity-20" />
+                                <p>請選擇一份試卷進入控制中心</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col h-full fade-in">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-gray-800">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{selectedExam.title}</h2>
+                                        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">目前題庫數量：<span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold">{selectedExam.questions?.length || 0}</span> 題</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <button onClick={() => togglePublish(selectedExam)} className={`px-6 py-2 rounded-lg font-bold text-sm tracking-widest transition-all shadow-md flex items-center justify-center gap-2 ${selectedExam.isPublished ? 'bg-transparent border border-slate-400 dark:border-gray-500 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white' : 'bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main hover:bg-cyan-700 dark:hover:bg-cyan-400 dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover'}`}>
+                                            <Zap size={16} /> {selectedExam.isPublished ? '停止派送' : '🚀 立即派送'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                                    {/* 題庫匯入區 */}
+                                    <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col">
+                                        <h3 className="font-bold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 題庫匯入模組</h3>
+                                        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/20 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition p-6 text-center">
+                                            <Upload size={40} className="text-slate-400 dark:text-gray-500 mb-3" />
+                                            <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">上傳 CSV 格式的題庫檔案，這將覆寫原有題目。</p>
+                                            <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
+                                                選擇 CSV 檔案
+                                                <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
+                                            </label>
+                                        </div>
+                                        <button onClick={downloadExamSample} className="mt-4 text-xs text-cyan-600 dark:text-neon-cyan hover:underline text-center">需要範本？下載題庫 CSV 範例檔</button>
+                                    </div>
+
+                                    {/* 測驗邏輯設定區 */}
+                                    <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col gap-6">
+                                        <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 測驗邏輯設定</h3>
+                                        
+                                        {/* 抽題數量 */}
+                                        <div className="bg-white dark:bg-gray-800/40 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none">
+                                            <div className="flex justify-between mb-2">
+                                                <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
+                                                <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-2 rounded">{selectedExam.drawCount} 題</span>
+                                            </div>
+                                            <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
+                                            <p className="text-[10px] text-slate-500 dark:text-gray-500 mt-2">提示：若設定數值大於總題數，將會以全題數進行隨機測驗。</p>
+                                        </div>
+
+                                        {/* 作答次數切換 */}
+                                        <div className="bg-white dark:bg-gray-800/40 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex justify-between items-center">
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
+                                                <div className="text-[10px] text-slate-500 dark:text-gray-500">開啟以允許學生重複測驗；關閉則為單次嚴格測驗。</div>
+                                            </div>
+                                            {/* 未來感 Toggle */}
+                                            <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
+                                                <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主程式：儀表板框架 ---
+        const Dashboard = ({ user, isDarkMode, toggleTheme }) => {
+            const [view, setView] = useState('classes');
+            
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* 頂部導航列 */}
+                    <header className="glass-card border-b-0 border-cyan-500/20 dark:border-neon-cyan/20 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+                        <div className="flex items-center gap-3">
+                            <Zap className="text-cyan-600 dark:text-neon-cyan" size={24} />
+                            <h1 className="text-xl font-bold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-gray-400">系統中控台</h1>
+                            <span className="text-xs border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 px-2 py-0.5 rounded-full ml-2">v2.0 Soft-Light</span>
+                        </div>
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
+                                {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
+                            </button>
+                            <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
+                            <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-neon-red transition px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"><LogOut size={16}/> 登出連線</button>
+                        </div>
+                    </header>
+
+                    {/* 主內容區 */}
+                    <main className="flex-1 container mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6 h-[calc(100vh-76px)]">
+                        {/* 左側選單 */}
+                        <aside className="w-full md:w-48 lg:w-56 shrink-0 flex flex-col gap-2">
+                            <button onClick={()=>setView('classes')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='classes' ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm dark:bg-neon-blue/20 dark:text-neon-blue dark:border-neon-blue/50 dark:shadow-neon-blue' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
+                                <Users size={20}/> 班級管理
+                            </button>
+                            <button onClick={()=>setView('exams')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='exams' ? 'bg-cyan-100 text-cyan-700 border border-cyan-300 shadow-sm dark:bg-neon-cyan/20 dark:text-neon-cyan dark:border-neon-cyan/50 dark:shadow-neon-cyan' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
+                                <BookOpen size={20}/> 試卷兵工廠
+                            </button>
+                        </aside>
+                        
+                        {/* 動態內容渲染 */}
+                        <section className="flex-1 min-h-0 relative">
+                            {view === 'classes' && <ClassManager user={user} />}
+                            {view === 'exams' && <ExamFactory user={user} />}
+                        </section>
+                    </main>
+                </div>
+            );
+        };
+
+        // --- App Entry Point ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [authChecking, setAuthChecking] = useState(true);
+            const [isDarkMode, setIsDarkMode] = useState(true); // 預設暗黑模式
+
+            // 主題切換邏輯
+            useEffect(() => {
+                if (isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }, [isDarkMode]);
+
+            const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setAuthChecking(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (authChecking) return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-main">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan"></div>
+                </div>
+            );
+
+            return (
+                <ToastProvider>
+                    {user ? <Dashboard user={user} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <AuthScreen isDarkMode={isDarkMode} toggleTheme={toggleTheme} />}
+                </ToastProvider>
+            );
+        };
 
         const root = createRoot(document.getElementById('root'));
         root.render(<App />);
