@@ -100,11 +100,13 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X } from 'lucide-react';
+        // 🌟 新增了 Key 圖示 (用於修改密碼)
+        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+        // 🌟 新增了 sendPasswordResetEmail 與 updatePassword 函式
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
         import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 
         // 指揮官提供的 Firebase Config
@@ -161,6 +163,12 @@
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [loading, setLoading] = useState(false);
+            
+            // 忘記密碼 Modal 狀態
+            const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+            const [resetEmail, setResetEmail] = useState('');
+            const [resetLoading, setResetLoading] = useState(false);
+
             const showToast = useToast();
 
             const handleAuth = async (e) => {
@@ -178,6 +186,23 @@
                     showToast(error.message, "error");
                 }
                 setLoading(false);
+            };
+
+            const handlePasswordReset = async () => {
+                if (!resetEmail.trim()) {
+                    showToast("請輸入您註冊的 Email", "error");
+                    return;
+                }
+                setResetLoading(true);
+                try {
+                    await sendPasswordResetEmail(auth, resetEmail);
+                    showToast("密碼重設信件已發送，請至信箱收信並重設密碼", "success");
+                    setIsResetModalOpen(false);
+                    setResetEmail('');
+                } catch (error) {
+                    showToast("發送失敗: " + error.message, "error");
+                }
+                setResetLoading(false);
             };
 
             return (
@@ -206,7 +231,16 @@
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label>
                                 <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
                             </div>
-                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover transition-all duration-300 flex justify-center items-center">
+                            
+                            {isLogin && (
+                                <div className="text-right mt-1">
+                                    <button type="button" onClick={() => { setResetEmail(email); setIsResetModalOpen(true); }} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline">
+                                        忘記存取金鑰？
+                                    </button>
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover transition-all duration-300 flex justify-center items-center mt-2">
                                 {loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}
                             </button>
                         </form>
@@ -217,6 +251,31 @@
                             </button>
                         </div>
                     </div>
+
+                    {/* 忘記密碼的浮動視窗 (Modal) */}
+                    {isResetModalOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
+                            <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Key size={20} className="text-cyan-600 dark:text-neon-cyan"/> 重設存取金鑰</h3>
+                                    <button onClick={() => setIsResetModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label>
+                                        <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="example@email.com" />
+                                    </div>
+                                </div>
+                                <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
+                                    <button onClick={() => setIsResetModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
+                                    <button onClick={handlePasswordReset} disabled={resetLoading} className="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400 text-white dark:text-dark-main font-bold shadow-md transition">
+                                        {resetLoading ? '發送中...' : '發送重設信'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -876,8 +935,33 @@
         const Dashboard = ({ user, isDarkMode, toggleTheme }) => {
             const [view, setView] = useState('classes');
             
+            // 修改密碼 Modal 狀態
+            const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
+            const [newPassword, setNewPassword] = useState('');
+            
+            const showToast = useToast();
+
+            const handleUpdatePassword = async () => {
+                if (newPassword.length < 6) {
+                    showToast("密碼長度至少需要 6 個字元", "error");
+                    return;
+                }
+                try {
+                    await updatePassword(user, newPassword);
+                    showToast("存取金鑰 (密碼) 已成功更新！", "success");
+                    setIsPwdModalOpen(false);
+                    setNewPassword('');
+                } catch (error) {
+                    if (error.code === 'auth/requires-recent-login') {
+                        showToast("基於安全考量，請先登出並重新登入後，再進行密碼修改", "error");
+                    } else {
+                        showToast("密碼更新失敗：" + error.message, "error");
+                    }
+                }
+            };
+
             return (
-                <div className="min-h-screen flex flex-col">
+                <div className="min-h-screen flex flex-col relative">
                     {/* 頂部導航列 */}
                     <header className="glass-card border-b-0 border-cyan-500/20 dark:border-neon-cyan/20 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
                         <div className="flex items-center gap-3">
@@ -890,6 +974,7 @@
                                 {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
                             </button>
                             <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
+                            <button onClick={() => setIsPwdModalOpen(true)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition px-3 py-1.5 rounded-lg border border-transparent hover:border-cyan-200 dark:hover:border-cyan-900/50 hover:bg-cyan-50 dark:hover:bg-cyan-900/20" title="修改密碼"><Key size={16}/><span className="hidden lg:inline">修改密碼</span></button>
                             <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-neon-red transition px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"><LogOut size={16}/> 登出連線</button>
                         </div>
                     </header>
@@ -912,6 +997,31 @@
                             {view === 'exams' && <ExamFactory user={user} />}
                         </section>
                     </main>
+
+                    {/* 修改密碼 Modal (浮動視窗) */}
+                    {isPwdModalOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
+                            <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Key size={20} className="text-cyan-600 dark:text-neon-cyan"/> 變更存取金鑰 (密碼)</h3>
+                                    <button onClick={() => setIsPwdModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-xs p-3 rounded-lg mb-4">
+                                        💡 提示：基於安全防護，如果您已經登入一段時間，系統可能會拒絕修改密碼。遇到此情況請先登出並重新登入即可。
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請輸入新密碼 (至少 6 個字元)</label>
+                                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="******" />
+                                    </div>
+                                </div>
+                                <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
+                                    <button onClick={() => setIsPwdModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
+                                    <button onClick={handleUpdatePassword} className="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400 text-white dark:text-dark-main font-bold shadow-md transition">確認變更</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
