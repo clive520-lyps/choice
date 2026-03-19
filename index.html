@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>智慧測驗 | 學生終端</title>
     
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
@@ -41,7 +40,6 @@
 
     <style>
         :root {
-            /* 柔和的明亮模式 (日光航艦) */
             --bg-color: #F8FAFC;
             --text-main: #0F172A;
             --grid-color: rgba(15, 23, 42, 0.05);
@@ -49,7 +47,6 @@
             --glass-border: rgba(203, 213, 225, 0.8);
         }
         .dark {
-            /* 經典科幻暗黑模式 */
             --bg-color: #0B0F19;
             --text-main: #E5E7EB;
             --grid-color: rgba(0, 229, 255, 0.03);
@@ -77,7 +74,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        /* 鎖定力場特效 */
         .force-field-locked {
             position: relative;
         }
@@ -119,7 +115,6 @@
         import { createRoot } from 'react-dom/client';
         import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight, Target } from 'lucide-react';
         
-        // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
         import { getFirestore, collection, addDoc, doc, onSnapshot, query, where, getDocs, orderBy } from 'firebase/firestore';
 
@@ -160,7 +155,6 @@
         };
         const useToast = () => useContext(ToastContext);
 
-        // --- 內建電子合成音效引擎 (Web Audio API) ---
         const useAudioEngine = (isEnabled) => {
             const audioCtxRef = useRef(null);
             
@@ -205,7 +199,6 @@
             return { initAudio, playCorrect, playWrong };
         };
 
-        // --- 陣列洗牌工具 (Fisher-Yates) ---
         const shuffleArray = (arr) => {
             const newArr = [...arr];
             for (let i = newArr.length - 1; i > 0; i--) {
@@ -215,9 +208,6 @@
             return newArr;
         };
 
-        // ==========================================
-        // 組件 1：無痛登入介面
-        // ==========================================
         const LoginScreen = ({ onLogin }) => {
             const [classes, setClasses] = useState([]);
             const [students, setStudents] = useState([]);
@@ -303,9 +293,6 @@
             );
         };
 
-        // ==========================================
-        // 組件：專屬錯題本 (Mistake Book)
-        // ==========================================
         const MistakeBook = ({ student, onBack }) => {
             const [groupedExams, setGroupedExams] = useState({});
             const [selectedExamId, setSelectedExamId] = useState(null); 
@@ -439,9 +426,6 @@
             );
         };
 
-        // ==========================================
-        // 組件 2：任務大廳 (Mission Board)
-        // ==========================================
         const MissionBoard = ({ student, onStartTest, onOpenMistakeBook }) => {
             const [exams, setExams] = useState([]);
             const [scores, setScores] = useState({});
@@ -507,6 +491,8 @@
                         ) : exams.map(exam => {
                             const hasTaken = scores[exam.id];
                             const isLocked = !exam.allowMultipleAttempts && hasTaken;
+                            // 🌟 顯示每題秒數設定
+                            const displayTime = exam.timeLimit || 30;
 
                             return (
                                 <div key={exam.id} onClick={() => handleExamClick(exam)} className={`relative overflow-hidden p-5 rounded-2xl border-2 transition-all cursor-pointer group ${isLocked ? 'bg-slate-100 dark:bg-gray-800/50 border-slate-300 dark:border-gray-700 opacity-70 grayscale' : 'glass-card border-transparent hover:border-cyan-400 shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98]'}`}>
@@ -518,8 +504,9 @@
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition">{exam.title}</h3>
-                                            <div className="flex gap-3 text-xs font-bold text-slate-500 dark:text-gray-400">
+                                            <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-500 dark:text-gray-400">
                                                 <span className="flex items-center gap-1"><AlertTriangle size={14}/> 隨機 {exam.drawCount} 題</span>
+                                                <span className="flex items-center gap-1"><Clock size={14}/> 每題 {displayTime} 秒</span>
                                                 <span className="flex items-center gap-1">
                                                     {exam.allowMultipleAttempts ? <span className="text-green-600 dark:text-neon-green flex items-center gap-1"><CheckCircle size={14}/> 無限刷題</span> : <span className="text-amber-600 dark:text-neon-amber flex items-center gap-1"><ShieldAlert size={14}/> 單次嚴格測驗</span>}
                                                 </span>
@@ -548,21 +535,21 @@
             );
         };
 
-        // ==========================================
-        // 組件 3：核心測驗引擎 (Combat Engine)
-        // ==========================================
         const QuizEngine = ({ student, exam, onComplete, audioEngine }) => {
+            // 🌟 核心：抓取考卷設定的時間，若無則預設為 30 秒
+            const examTimeLimit = exam.timeLimit || 30;
+
             const [questions, setQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [score, setScore] = useState(0);
             const [combo, setCombo] = useState(0); 
             
-            // 即時計算答對率的狀態 (第一輪限定)
             const [correctCount, setCorrectCount] = useState(0); 
             const [answeredCount, setAnsweredCount] = useState(0);
             const initialQuestionsCountRef = useRef(0);
             
-            const [timeLeft, setTimeLeft] = useState(30); 
+            // 🌟 倒數計時器初始值改為動態變數
+            const [timeLeft, setTimeLeft] = useState(examTimeLimit); 
             const [mistakes, setMistakes] = useState([]); 
             const [recordedMistakes, setRecordedMistakes] = useState([]); 
             
@@ -575,7 +562,7 @@
             useEffect(() => {
                 const shuffled = shuffleArray(exam.questions || []);
                 const drawn = shuffled.slice(0, Math.min(exam.drawCount, shuffled.length));
-                initialQuestionsCountRef.current = drawn.length; // 記錄本回合實際抽出的總題數
+                initialQuestionsCountRef.current = drawn.length; 
                 const processed = drawn.map(q => {
                     const correctText = /^[1-4]$/.test(q.correct) ? q.options[parseInt(q.correct)-1] : q.correct;
                     const shuffledOptions = shuffleArray([...q.options]);
@@ -585,8 +572,10 @@
                 audioEngine.initAudio(); 
             }, []);
 
+            // 🌟 依賴 currentIndex 來確保每次換題都能抓到最新的 closure state
             useEffect(() => {
                 if (questions.length === 0 || isLocked) return;
+                
                 const timer = setInterval(() => {
                     setTimeLeft(prev => {
                         if (prev <= 1) {
@@ -610,14 +599,13 @@
                 const currentQ = questions[currentIndex];
                 const isCorrect = !isTimeout && (selectedOpt === currentQ.correctText);
                 
-                // 即時更新第一輪的答對數與作答數
                 if (!isReviewMode) {
                     setAnsweredCount(prev => prev + 1);
                     if (isCorrect) setCorrectCount(prev => prev + 1);
                 }
 
-                // --- 計分與 Combo 邏輯 (時間遞減制 1000 分滿分) ---
-                const timeRatio = Math.max(0, timeLeft / 30); 
+                // 🌟 計分邏輯同步改為以「動態設定的總秒數」為分母
+                const timeRatio = Math.max(0, timeLeft / examTimeLimit); 
                 const BASE_SCORE = Math.max(100, Math.floor(timeRatio * 1000));
                 let earnedPoints = 0;
 
@@ -664,7 +652,7 @@
                     setAnimState('');
                     if (currentIndex < questions.length - 1) {
                         setCurrentIndex(prev => prev + 1);
-                        setTimeLeft(30);
+                        setTimeLeft(examTimeLimit); // 🌟 換題時重置回動態秒數
                     } else {
                         handleRoundComplete();
                     }
@@ -677,7 +665,7 @@
                     setIsReviewMode(true);
                     setQuestions(shuffleArray(mistakes));
                     setCurrentIndex(0);
-                    setTimeLeft(30);
+                    setTimeLeft(examTimeLimit); // 🌟 進入訂正模式時重置回動態秒數
                     setMistakes([]); 
                 } else {
                     finalizeTest();
@@ -685,7 +673,6 @@
             };
 
             const finalizeTest = async () => {
-                // 🌟 計算最終整體答對率 (第一輪)
                 const finalAccuracy = Math.round(((initialQuestionsCountRef.current - recordedMistakes.length) / initialQuestionsCountRef.current) * 100) || 0;
 
                 const scoreData = {
@@ -724,10 +711,10 @@
             if (questions.length === 0) return <div className="p-10 text-center">正在解析作戰任務...</div>;
 
             const currentQ = questions[currentIndex];
+            // 🌟 剩下 5 秒以內進入紅色警戒狀態
             const isDangerTime = timeLeft <= 5;
             const multiplier = Math.min(1.0 + (combo * 0.1), 2.0).toFixed(1);
             
-            // 🌟 即時答對率顯示邏輯 (第一輪的當下狀態)
             const currentAccuracy = answeredCount === 0 ? '--' : Math.round((correctCount / answeredCount) * 100);
 
             return (
@@ -758,7 +745,8 @@
 
                     {/* 進度條與計時器 */}
                     <div className="relative h-2 bg-slate-200 dark:bg-gray-800 rounded-full mb-8 overflow-hidden">
-                        <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${isDangerTime ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${(timeLeft / 30) * 100}%` }}></div>
+                        {/* 🌟 進度條寬度計算同步改為動態分母 */}
+                        <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${isDangerTime ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${(timeLeft / examTimeLimit) * 100}%` }}></div>
                     </div>
 
                     {/* 題目區塊 */}
@@ -800,9 +788,6 @@
             );
         };
 
-        // ==========================================
-        // 組件 4：戰果報告 (Report Card)
-        // ==========================================
         const ReportCard = ({ score, accuracy, mistakes, totalQuestions, onBack }) => {
             return (
                 <div className="min-h-screen flex flex-col items-center py-10 px-4 fade-in overflow-y-auto">
@@ -868,9 +853,6 @@
             );
         };
 
-        // ==========================================
-        // 主程式 (App Router)
-        // ==========================================
         const App = () => {
             const [student, setStudent] = useState(null);
             const [activeExam, setActiveExam] = useState(null);
