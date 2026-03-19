@@ -105,7 +105,7 @@
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 
         // 指揮官提供的 Firebase Config
         const firebaseConfig = {
@@ -227,6 +227,10 @@
             const [students, setStudents] = useState([]);
             const [newClassName, setNewClassName] = useState('');
             const [selectedClass, setSelectedClass] = useState(null);
+            
+            // 學生編輯狀態
+            const [editingStudent, setEditingStudent] = useState(null);
+            
             const showToast = useToast();
 
             // 監聽班級資料
@@ -261,15 +265,74 @@
             };
 
             const deleteClass = async (classId) => {
-                if (!confirm("警告：確定要刪除此班級嗎？關聯的學生將會成為孤兒資料。")) return;
-                await deleteDoc(doc(db, 'classes', classId));
-                if(selectedClass?.id === classId) setSelectedClass(null);
-                showToast("班級已刪除", "success");
+                if (!confirm("警告：確定要刪除此班級嗎？\n⚠️ 此操作將一併「刪除該班級的所有學生」，以及他們所有的「考試與錯題紀錄」，且無法復原！")) return;
+                
+                try {
+                    // 1. 查詢該班級的所有學生
+                    const studentsQuery = query(collection(db, 'students'), where('classId', '==', classId));
+                    const studentDocs = await getDocs(studentsQuery);
+                    
+                    // 2. 查詢該班級的所有成績與錯題紀錄 (關聯未來的學生端)
+                    const scoresQuery = query(collection(db, 'scores'), where('classId', '==', classId));
+                    const scoreDocs = await getDocs(scoresQuery);
+                    
+                    const mistakesQuery = query(collection(db, 'mistakes'), where('classId', '==', classId));
+                    const mistakeDocs = await getDocs(mistakesQuery);
+
+                    // 3. 收集所有需要刪除的任務 Promise
+                    const deletePromises = [];
+                    studentDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    scoreDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    mistakeDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    
+                    // 4. 刪除班級本身
+                    deletePromises.push(deleteDoc(doc(db, 'classes', classId)));
+
+                    // 5. 批次執行所有刪除作業
+                    await Promise.all(deletePromises);
+
+                    if(selectedClass?.id === classId) setSelectedClass(null);
+                    showToast("班級及其所有關聯資料（學生、成績）已徹底刪除", "success");
+                } catch (error) {
+                    showToast("刪除班級失敗：" + error.message, "error");
+                }
             };
 
             const deleteStudent = async (studentId) => {
-                await deleteDoc(doc(db, 'students', studentId));
-                showToast("學生資料已移除");
+                if (!confirm("確定要刪除這位學生嗎？相關考試紀錄將會一併刪除。")) return;
+                try {
+                    // 同步刪除該學生的成績與錯題
+                    const scoresQuery = query(collection(db, 'scores'), where('studentId', '==', studentId));
+                    const scoreDocs = await getDocs(scoresQuery);
+                    const mistakesQuery = query(collection(db, 'mistakes'), where('studentId', '==', studentId));
+                    const mistakeDocs = await getDocs(mistakesQuery);
+                    
+                    const deletePromises = [deleteDoc(doc(db, 'students', studentId))];
+                    scoreDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    mistakeDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    
+                    await Promise.all(deletePromises);
+                    showToast("學生資料與相關紀錄已徹底刪除");
+                } catch (error) {
+                    showToast("刪除失敗：" + error.message, "error");
+                }
+            };
+
+            const saveEditStudent = async () => {
+                if (!editingStudent.name.trim() || !editingStudent.seatNo.trim()) {
+                    showToast("座號與姓名不可為空", "error");
+                    return;
+                }
+                try {
+                    await updateDoc(doc(db, 'students', editingStudent.id), {
+                        seatNo: editingStudent.seatNo,
+                        name: editingStudent.name
+                    });
+                    setEditingStudent(null);
+                    showToast("學生資料已更新", "success");
+                } catch (error) {
+                    showToast("更新失敗: " + error.message, "error");
+                }
             };
 
             const handleStudentCSVUpload = (e) => {
@@ -353,12 +416,39 @@
                                                 <div key={s.id} className="grid grid-cols-4 p-4 border-b border-slate-100 dark:border-gray-800 items-center hover:bg-slate-50 dark:hover:bg-gray-800/30 transition text-slate-800 dark:text-gray-200">
                                                     <div className="col-span-1 font-mono text-cyan-700 dark:text-neon-cyan font-bold">{s.seatNo}</div>
                                                     <div className="col-span-2 font-medium">{s.name}</div>
-                                                    <div className="col-span-1 text-right">
-                                                        <button onClick={()=>deleteStudent(s.id)} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red transition"><Trash2 size={18}/></button>
+                                                    <div className="col-span-1 text-right flex justify-end gap-2">
+                                                        <button onClick={()=>setEditingStudent({ ...s })} className="text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-neon-blue transition p-1"><Edit size={18}/></button>
+                                                        <button onClick={()=>deleteStudent(s.id)} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red transition p-1"><Trash2 size={18}/></button>
                                                     </div>
                                                 </div>
                                             ))
                                         }
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 學生編輯 Modal (浮動視窗) */}
+                        {editingStudent && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
+                                <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                    <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
+                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Edit size={20} className="text-blue-600 dark:text-neon-blue"/> 編輯學生資料</h3>
+                                        <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
+                                            <input type="text" value={editingStudent.seatNo} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
+                                            <input type="text" value={editingStudent.name} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                                        </div>
+                                    </div>
+                                    <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
+                                        <button onClick={() => setEditingStudent(null)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
+                                        <button onClick={saveEditStudent} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400 text-white dark:text-dark-main font-bold shadow-md transition">儲存變更</button>
                                     </div>
                                 </div>
                             </div>
