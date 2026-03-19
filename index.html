@@ -117,7 +117,8 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft } from 'lucide-react';
+        // 🌟 引入 FolderOpen 與 ChevronRight 圖示
+        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
@@ -304,23 +305,38 @@
         };
 
         // ==========================================
-        // 🌟 組件：專屬錯題本 (Mistake Book)
+        // 🌟 組件：專屬錯題本 (Mistake Book - 群組化分類版)
         // ==========================================
         const MistakeBook = ({ student, onBack }) => {
-            const [mistakes, setMistakes] = useState([]);
+            const [groupedExams, setGroupedExams] = useState({});
+            const [selectedExamId, setSelectedExamId] = useState(null); // null 顯示考卷列表；有值則顯示該考卷的錯題
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
                 const fetchMistakes = async () => {
-                    // 從 Firestore 獲取該學生的所有錯題
                     const q = query(collection(db, 'mistakes'), where('studentId', '==', student.id));
                     const snapshot = await getDocs(q);
-                    let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
-                    // 根據時間戳記排序 (最新在前)
-                    list.sort((a, b) => b.timestamp - a.timestamp);
-                    
-                    setMistakes(list);
+                    // 群組化演算法：將錯題以 examId 分類
+                    const groups = {};
+                    snapshot.docs.forEach(doc => {
+                        const data = { id: doc.id, ...doc.data() };
+                        if (!groups[data.examId]) {
+                            groups[data.examId] = {
+                                examId: data.examId,
+                                examTitle: data.examTitle || '未命名試卷',
+                                mistakes: [],
+                                latestTime: data.timestamp // 記錄最新錯題的時間
+                            };
+                        }
+                        groups[data.examId].mistakes.push(data);
+                        // 更新該考卷的最後作答時間
+                        if (data.timestamp > groups[data.examId].latestTime) {
+                            groups[data.examId].latestTime = data.timestamp;
+                        }
+                    });
+
+                    setGroupedExams(groups);
                     setLoading(false);
                 };
                 fetchMistakes();
@@ -332,65 +348,98 @@
                 </div>
             );
 
+            // 將群組物件轉換為陣列，並按最新作答時間排序
+            const examList = Object.values(groupedExams).sort((a, b) => b.latestTime - a.latestTime);
+
             return (
                 <div className="p-4 md:p-6 fade-in h-full flex flex-col pb-20 overflow-y-auto">
-                    <div className="mb-6 flex justify-between items-center gap-4 border-b border-slate-200 dark:border-gray-800 pb-4">
+                    {/* 頂部導航區 */}
+                    <div className="mb-6 flex justify-between items-center gap-4 border-b border-slate-200 dark:border-gray-800 pb-4 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl">
                                 <BookOpen className="text-red-600 dark:text-red-400" size={24}/>
                             </div>
                             <div>
                                 <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">專屬錯題本</h2>
-                                <p className="text-xs md:text-sm text-slate-500 dark:text-gray-400">所有歷史錯誤分析與檢討</p>
+                                <p className="text-xs md:text-sm text-slate-500 dark:text-gray-400">
+                                    {selectedExamId ? `複習：${groupedExams[selectedExamId]?.examTitle}` : '選擇考卷以進行複習'}
+                                </p>
                             </div>
                         </div>
-                        <button onClick={onBack} className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-xl font-bold transition active:scale-95 text-sm shrink-0">
+                        <button 
+                            onClick={() => selectedExamId ? setSelectedExamId(null) : onBack()} 
+                            className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-xl font-bold transition active:scale-95 text-sm shrink-0"
+                        >
                             <ArrowLeft size={16}/> 返回
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                        {mistakes.length === 0 ? (
+                    <div className="flex-1 space-y-4">
+                        {examList.length === 0 ? (
                             <div className="glass-card p-10 rounded-2xl text-center text-green-600 dark:text-green-400 font-bold flex flex-col items-center justify-center gap-3">
                                 <CheckCircle size={48} />
                                 太神啦！您的錯題本目前空空如也！
                             </div>
+                        ) : !selectedExamId ? (
+                            // 🌟 視圖 1：顯示考卷列表 (資料夾概念)
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-in">
+                                {examList.map((exam) => (
+                                    <div 
+                                        key={exam.examId} 
+                                        onClick={() => setSelectedExamId(exam.examId)}
+                                        className="glass-card p-5 rounded-2xl border-2 border-transparent hover:border-red-400 hover:shadow-lg dark:hover:shadow-red-900/20 cursor-pointer transition-all active:scale-[0.98] group flex items-center justify-between"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-full text-red-500 dark:text-red-400 shrink-0 group-hover:bg-red-500 group-hover:text-white transition">
+                                                <FolderOpen size={24}/>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">{exam.examTitle}</h3>
+                                                <div className="flex gap-3 text-xs text-slate-500 dark:text-gray-400">
+                                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full font-bold">
+                                                        待複習：{exam.mistakes.length} 題
+                                                    </span>
+                                                    <span className="flex items-center">
+                                                        最後作答：{new Date(exam.latestTime).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="text-slate-300 dark:text-gray-600 group-hover:text-red-500 transition shrink-0" size={24}/>
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
-                            mistakes.map((m, idx) => (
-                                <div key={idx} className="glass-card p-5 md:p-6 rounded-2xl border-l-4 border-l-red-500 text-left shadow-md transition hover:border-l-red-400 hover:shadow-lg">
-                                    <div className="flex justify-between items-start mb-4 gap-2">
-                                        <div className="font-bold text-slate-800 dark:text-white text-lg leading-snug">
-                                            {m.question}
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                                        {/* 考卷名稱標籤 */}
-                                        <span className="bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1 rounded text-xs font-bold border border-slate-200 dark:border-gray-700">
-                                            來源：{m.examTitle || '未命名試卷'}
-                                        </span>
-                                        {/* 時間標籤 */}
-                                        <span className="bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 px-2 py-1 rounded text-xs">
-                                            {new Date(m.timestamp).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-3 text-sm">
-                                        <div className="flex items-start gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                            <XCircle size={20} className="shrink-0 mt-0.5" />
-                                            <div>
-                                                <span className="font-bold opacity-70 block text-xs mb-1">你當時選了</span>
-                                                <span className="font-medium text-base">{m.selected}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
-                                            <CheckCircle size={20} className="shrink-0 mt-0.5" />
-                                            <div>
-                                                <span className="font-bold opacity-70 block text-xs mb-1">正確解答是</span>
-                                                <span className="font-bold text-base">{m.correctText}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            // 🌟 視圖 2：顯示特定考卷的錯題細節
+                            <div className="space-y-4 fade-in">
+                                <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 border border-amber-200 dark:border-amber-800/50 mb-2">
+                                    <AlertTriangle size={18}/> 此區記錄您在「{groupedExams[selectedExamId]?.examTitle}」中所有曾答錯的題目。
                                 </div>
-                            ))
+                                
+                                {groupedExams[selectedExamId].mistakes.map((m, idx) => (
+                                    <div key={idx} className="glass-card p-5 md:p-6 rounded-2xl border-l-4 border-l-red-500 text-left shadow-md">
+                                        <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg leading-snug">
+                                            <span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}
+                                        </div>
+                                        <div className="flex flex-col gap-3 text-sm">
+                                            <div className="flex items-start gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                                <XCircle size={20} className="shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold opacity-70 block text-xs mb-1">你當時選了</span>
+                                                    <span className="font-medium text-base">{m.selected}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
+                                                <CheckCircle size={20} className="shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold opacity-70 block text-xs mb-1">正確解答是</span>
+                                                    <span className="font-bold text-base">{m.correctText}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -450,7 +499,6 @@
                             </div>
                         </div>
                         
-                        {/* 🌟 錯題本入口按鈕 */}
                         <button onClick={onOpenMistakeBook} className="bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition active:scale-95 shadow-sm border border-red-200 dark:border-red-900/50 shrink-0">
                             <BookOpen size={18} />
                             <span className="hidden sm:inline">專屬錯題本</span>
@@ -649,7 +697,7 @@
                         studentId: student.id, 
                         classId: student.classId, 
                         examId: exam.id,
-                        examTitle: exam.title, // 🌟 新增欄位，方便歷史錯題本顯示
+                        examTitle: exam.title,
                         question: m.question, 
                         correctText: m.correctText, 
                         selected: m.selected, 
@@ -798,7 +846,7 @@
             const [student, setStudent] = useState(null);
             const [activeExam, setActiveExam] = useState(null);
             const [reportData, setReportData] = useState(null); 
-            const [isViewingMistakes, setIsViewingMistakes] = useState(false); // 🌟 控制是否顯示專屬錯題本
+            const [isViewingMistakes, setIsViewingMistakes] = useState(false); 
             
             // 全局狀態：主題與音效
             const [isDarkMode, setIsDarkMode] = useState(false); 
@@ -856,7 +904,6 @@
                             ) : activeExam ? (
                                 <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, mistakesList, total) => setReportData({score, mistakes: mistakesList, total})} />
                             ) : isViewingMistakes ? (
-                                // 🌟 渲染錯題本組件
                                 <MistakeBook student={student} onBack={() => setIsViewingMistakes(false)} />
                             ) : (
                                 <MissionBoard student={student} onStartTest={setActiveExam} onOpenMistakeBook={() => setIsViewingMistakes(true)} />
