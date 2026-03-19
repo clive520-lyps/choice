@@ -295,7 +295,7 @@
                             </div>
 
                             <button onClick={handleLogin} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-cyan-600/30 active:scale-95 transition-all flex justify-center items-center gap-2 text-lg">
-                                <Zap size={20}/> 啟提測驗介面
+                                <Zap size={20}/> 啟動測驗介面
                             </button>
                         </div>
                     </div>
@@ -304,7 +304,7 @@
         };
 
         // ==========================================
-        // 🌟 組件：專屬錯題本 (Mistake Book)
+        // 組件：專屬錯題本 (Mistake Book)
         // ==========================================
         const MistakeBook = ({ student, onBack }) => {
             const [groupedExams, setGroupedExams] = useState({});
@@ -555,26 +555,27 @@
             const [questions, setQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [score, setScore] = useState(0);
-            const [combo, setCombo] = useState(0); // 連擊數
+            const [combo, setCombo] = useState(0); 
             
-            // 🌟 新增：用於即時計算答對率的狀態 (第一輪限定)
+            // 即時計算答對率的狀態 (第一輪限定)
             const [correctCount, setCorrectCount] = useState(0); 
             const [answeredCount, setAnsweredCount] = useState(0);
+            const initialQuestionsCountRef = useRef(0);
             
-            const [timeLeft, setTimeLeft] = useState(30); // 每題 30 秒
-            const [mistakes, setMistakes] = useState([]); // 錯題庫 (用於訂正循環)
-            const [recordedMistakes, setRecordedMistakes] = useState([]); // 紀錄所有錯過的題目
+            const [timeLeft, setTimeLeft] = useState(30); 
+            const [mistakes, setMistakes] = useState([]); 
+            const [recordedMistakes, setRecordedMistakes] = useState([]); 
             
-            const [isReviewMode, setIsReviewMode] = useState(false); // 是否為訂正模式
-            const [isLocked, setIsLocked] = useState(false); // 防亂點冷卻鎖定
-            const [animState, setAnimState] = useState(''); // 'correct', 'wrong', ''
+            const [isReviewMode, setIsReviewMode] = useState(false); 
+            const [isLocked, setIsLocked] = useState(false); 
+            const [animState, setAnimState] = useState(''); 
 
             const showToast = useToast();
 
-            // 初始化抽題
             useEffect(() => {
                 const shuffled = shuffleArray(exam.questions || []);
                 const drawn = shuffled.slice(0, Math.min(exam.drawCount, shuffled.length));
+                initialQuestionsCountRef.current = drawn.length; // 記錄本回合實際抽出的總題數
                 const processed = drawn.map(q => {
                     const correctText = /^[1-4]$/.test(q.correct) ? q.options[parseInt(q.correct)-1] : q.correct;
                     const shuffledOptions = shuffleArray([...q.options]);
@@ -584,10 +585,8 @@
                 audioEngine.initAudio(); 
             }, []);
 
-            // 倒數計時器
             useEffect(() => {
                 if (questions.length === 0 || isLocked) return;
-                
                 const timer = setInterval(() => {
                     setTimeLeft(prev => {
                         if (prev <= 1) {
@@ -602,7 +601,7 @@
             }, [currentIndex, questions.length, isLocked]);
 
             const handleTimeOut = () => {
-                handleAnswer(null, true); // Time out 視同答錯
+                handleAnswer(null, true); 
             };
 
             const handleAnswer = (selectedOpt, isTimeout = false) => {
@@ -611,7 +610,7 @@
                 const currentQ = questions[currentIndex];
                 const isCorrect = !isTimeout && (selectedOpt === currentQ.correctText);
                 
-                // 🌟 即時更新第一輪的答對數與作答數
+                // 即時更新第一輪的答對數與作答數
                 if (!isReviewMode) {
                     setAnsweredCount(prev => prev + 1);
                     if (isCorrect) setCorrectCount(prev => prev + 1);
@@ -687,7 +686,7 @@
 
             const finalizeTest = async () => {
                 // 🌟 計算最終整體答對率 (第一輪)
-                const finalAccuracy = Math.round(((exam.drawCount - recordedMistakes.length) / exam.drawCount) * 100) || 0;
+                const finalAccuracy = Math.round(((initialQuestionsCountRef.current - recordedMistakes.length) / initialQuestionsCountRef.current) * 100) || 0;
 
                 const scoreData = {
                     studentId: student.id,
@@ -696,7 +695,7 @@
                     examId: exam.id,
                     examTitle: exam.title,
                     score: score,
-                    accuracy: finalAccuracy, // 🌟 將答對率寫入資料庫
+                    accuracy: finalAccuracy, 
                     timestamp: Date.now()
                 };
 
@@ -716,7 +715,7 @@
                     }));
                     await Promise.all(mistakePromises);
 
-                    onComplete(score, finalAccuracy, recordedMistakes, exam.drawCount);
+                    onComplete(score, finalAccuracy, recordedMistakes, initialQuestionsCountRef.current);
                 } catch (error) {
                     showToast("成績上傳失敗：" + error.message, "error");
                 }
@@ -744,7 +743,6 @@
                         <div className="text-right flex flex-col items-end">
                             {!isReviewMode && combo >= 2 && <div className="text-sm font-black text-amber-500 animate-bounce mb-1">x{multiplier} COMBO!</div>}
                             
-                            {/* 🌟 新增：即時答對率與積分並排顯示 */}
                             <div className="flex items-end gap-4 sm:gap-6">
                                 <div className="text-right">
                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Accuracy</div>
@@ -813,7 +811,6 @@
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-widest">任務完成</h2>
                         <p className="text-slate-500 dark:text-gray-400 font-bold mb-8">作戰結算報告</p>
                         
-                        {/* 🌟 結算雙面板：最終積分與答對率並列 */}
                         <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 w-full">
                             <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center">
                                 <div className="text-xs font-bold text-slate-400 mb-1">最終獲得積分</div>
@@ -877,10 +874,9 @@
         const App = () => {
             const [student, setStudent] = useState(null);
             const [activeExam, setActiveExam] = useState(null);
-            const [reportData, setReportData] = useState(null); // { score, accuracy, mistakes, total }
+            const [reportData, setReportData] = useState(null); 
             const [isViewingMistakes, setIsViewingMistakes] = useState(false); 
             
-            // 全局狀態：主題與音效
             const [isDarkMode, setIsDarkMode] = useState(false); 
             const [isSoundEnabled, setIsSoundEnabled] = useState(false); 
             const audioEngine = useAudioEngine(isSoundEnabled);
@@ -932,10 +928,8 @@
                             {!student ? (
                                 <LoginScreen onLogin={setStudent} />
                             ) : reportData ? (
-                                // 🌟 將 accuracy 傳入 ReportCard 進行渲染
                                 <ReportCard score={reportData.score} accuracy={reportData.accuracy} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
                             ) : activeExam ? (
-                                // 🌟 接收引擎回傳的 finalAccuracy
                                 <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, accuracy, mistakesList, total) => setReportData({score, accuracy, mistakes: mistakesList, total})} />
                             ) : isViewingMistakes ? (
                                 <MistakeBook student={student} onBack={() => setIsViewingMistakes(false)} />
