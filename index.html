@@ -117,7 +117,6 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 🌟 修正：已在此處補上 Settings 與 BookOpen 的引入
         import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
@@ -418,7 +417,8 @@
             const [combo, setCombo] = useState(0); // 連擊數
             
             const [timeLeft, setTimeLeft] = useState(30); // 每題 30 秒
-            const [mistakes, setMistakes] = useState([]); // 錯題庫
+            const [mistakes, setMistakes] = useState([]); // 錯題庫 (用於訂正循環)
+            const [recordedMistakes, setRecordedMistakes] = useState([]); // 🌟 紀錄所有錯過的題目，用於最後的總結算報告
             
             const [isReviewMode, setIsReviewMode] = useState(false); // 是否為訂正模式
             const [isLocked, setIsLocked] = useState(false); // 防亂點冷卻鎖定
@@ -428,19 +428,15 @@
 
             // 初始化抽題
             useEffect(() => {
-                // Fisher-Yates 洗牌
                 const shuffled = shuffleArray(exam.questions || []);
-                // 裁切指定數量
                 const drawn = shuffled.slice(0, Math.min(exam.drawCount, shuffled.length));
-                // 將選項也洗牌 (防止背答案位置)
                 const processed = drawn.map(q => {
-                    // 找出正確答案字串
                     const correctText = /^[1-4]$/.test(q.correct) ? q.options[parseInt(q.correct)-1] : q.correct;
                     const shuffledOptions = shuffleArray([...q.options]);
                     return { ...q, correctText, displayOptions: shuffledOptions };
                 });
                 setQuestions(processed);
-                audioEngine.initAudio(); // 初始化音訊環境
+                audioEngine.initAudio(); 
             }, []);
 
             // 倒數計時器
@@ -470,8 +466,11 @@
                 const currentQ = questions[currentIndex];
                 const isCorrect = !isTimeout && (selectedOpt === currentQ.correctText);
                 
-                // --- 計分與 Combo 邏輯 ---
-                const BASE_SCORE = 10;
+                // --- 🌟 計分與 Combo 邏輯 (時間遞減制 1000 分滿分) ---
+                // 計算剩餘時間比例 (最高 1.0，最低 0)
+                const timeRatio = Math.max(0, timeLeft / 30); 
+                // 基礎分數：依時間比例遞減，最低保障 100 分 (只要答對就至少有分)
+                const BASE_SCORE = Math.max(100, Math.floor(timeRatio * 1000));
                 let earnedPoints = 0;
 
                 if (isCorrect) {
@@ -480,7 +479,7 @@
                     
                     if (isReviewMode) {
                         // 訂正模式：半價，無 Combo
-                        earnedPoints = BASE_SCORE / 2;
+                        earnedPoints = Math.round(BASE_SCORE / 2);
                         setScore(prev => prev + earnedPoints);
                     } else {
                         // 正常模式：計算 Combo
@@ -488,19 +487,29 @@
                         earnedPoints = Math.round(BASE_SCORE * currentMultiplier);
                         setScore(prev => prev + earnedPoints);
                         setCombo(prev => prev + 1);
-                        if(combo > 1) showToast(`${combo} 連擊！分數加成 x${currentMultiplier.toFixed(1)}`, 'success');
+                        
+                        if(combo > 1) {
+                            showToast(`${combo} 連擊！分數加成 x${currentMultiplier.toFixed(1)} (+${earnedPoints} PTS)`, 'success');
+                        }
                     }
                 } else {
                     audioEngine.playWrong();
                     setAnimState('wrong');
                     setCombo(0); // 中斷 Combo
                     
-                    // 紀錄錯題 (如果還沒被記過)
+                    const mistakeRecord = {
+                        ...currentQ,
+                        selected: selectedOpt || '超時未作答'
+                    };
+
+                    // 加入用於訂正循環的錯題庫
                     if (!mistakes.find(m => m.question === currentQ.question)) {
-                        setMistakes(prev => [...prev, {
-                            ...currentQ,
-                            selected: selectedOpt || '未作答'
-                        }]);
+                        setMistakes(prev => [...prev, mistakeRecord]);
+                    }
+                    
+                    // 🌟 加入最終報告要顯示的錯題庫 (避免被清除)
+                    if (!recordedMistakes.find(m => m.question === currentQ.question)) {
+                        setRecordedMistakes(prev => [...prev, mistakeRecord]);
                     }
 
                     // 防猜機制：連續答錯或亂點鎖定
@@ -532,14 +541,12 @@
                     setTimeLeft(30);
                     setMistakes([]); // 清空以記錄「訂正又錯」的題目
                 } else {
-                    // 結束所有測驗 (如果訂正模式還錯，就不再訂正了，直接結算)
+                    // 結束所有測驗
                     finalizeTest();
                 }
             };
 
             const finalizeTest = async () => {
-                const finalMistakes = isReviewMode ? mistakes : mistakes; // 最終殘留的錯題
-                
                 // 準備寫入資料庫
                 const scoreData = {
                     studentId: student.id,
@@ -555,16 +562,16 @@
                     // 1. 寫入成績
                     await addDoc(collection(db, 'scores'), scoreData);
                     
-                    // 2. 寫入錯題
-                    const mistakePromises = finalMistakes.map(m => addDoc(collection(db, 'mistakes'), {
+                    // 2. 寫入錯題 (使用 recordedMistakes 確保所有錯過的都有記錄到資料庫)
+                    const mistakePromises = recordedMistakes.map(m => addDoc(collection(db, 'mistakes'), {
                         studentId: student.id, classId: student.classId, examId: exam.id,
                         question: m.question, correct: m.correctText, selected: m.selected, options: m.options,
                         timestamp: Date.now()
                     }));
                     await Promise.all(mistakePromises);
 
-                    // 切換至結算畫面
-                    onComplete(score, finalMistakes.length, questions.length);
+                    // 🌟 切換至結算畫面，並傳入所有錯題紀錄
+                    onComplete(score, recordedMistakes, exam.drawCount);
                 } catch (error) {
                     showToast("成績上傳失敗：" + error.message, "error");
                 }
@@ -638,12 +645,12 @@
         };
 
         // ==========================================
-        // 組件 4：戰果報告 (Report Card)
+        // 組件 4：戰果報告 (Report Card) - 🌟 新增錯題檢討區塊
         // ==========================================
-        const ReportCard = ({ score, totalQuestions, onBack }) => {
+        const ReportCard = ({ score, mistakes, totalQuestions, onBack }) => {
             return (
-                <div className="min-h-screen flex items-center justify-center p-4 fade-in">
-                    <div className="glass-card p-10 rounded-3xl w-full max-w-sm text-center shadow-2xl border-t-8 border-t-cyan-500">
+                <div className="min-h-screen flex flex-col items-center py-10 px-4 fade-in overflow-y-auto">
+                    <div className="glass-card p-8 md:p-10 rounded-3xl w-full max-w-2xl text-center shadow-2xl border-t-8 border-t-cyan-500 mb-8 shrink-0">
                         <Trophy className="mx-auto text-amber-400 mb-6" size={80} />
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-widest">任務完成</h2>
                         <p className="text-slate-500 dark:text-gray-400 font-bold mb-8">作戰結算報告</p>
@@ -658,6 +665,43 @@
                             返回任務大廳
                         </button>
                     </div>
+
+                    {/* 🌟 錯題檢討區塊 */}
+                    <div className="w-full max-w-2xl space-y-4 shrink-0 pb-10">
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 ml-2">
+                            <BookOpen className="text-cyan-600 dark:text-cyan-400" size={24}/>
+                            錯題檢討區 <span className="text-sm font-normal text-slate-500">({mistakes.length} 題)</span>
+                        </h3>
+
+                        {mistakes.length === 0 ? (
+                            <div className="glass-card p-8 rounded-2xl text-center text-green-600 dark:text-green-400 font-bold flex flex-col items-center justify-center gap-3">
+                                <CheckCircle size={48} />
+                                完美達成！沒有任何錯題！
+                            </div>
+                        ) : (
+                            mistakes.map((m, idx) => (
+                                <div key={idx} className="glass-card p-5 md:p-6 rounded-2xl border-l-4 border-l-red-500 text-left shadow-md">
+                                    <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg"><span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}</div>
+                                    <div className="flex flex-col gap-3 text-sm">
+                                        <div className="flex items-start gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                            <XCircle size={20} className="shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold opacity-70 block text-xs mb-1">你的答案</span>
+                                                <span className="font-medium text-base">{m.selected}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
+                                            <CheckCircle size={20} className="shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold opacity-70 block text-xs mb-1">正確答案</span>
+                                                <span className="font-bold text-base">{m.correctText}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -668,7 +712,7 @@
         const App = () => {
             const [student, setStudent] = useState(null);
             const [activeExam, setActiveExam] = useState(null);
-            const [reportData, setReportData] = useState(null); // { score, mistakeCount, total }
+            const [reportData, setReportData] = useState(null); // { score, mistakes, total }
             
             // 全局狀態：主題與音效
             const [isDarkMode, setIsDarkMode] = useState(false); // 預設日光航艦
@@ -693,7 +737,6 @@
                         <h1 className="text-lg font-black tracking-widest text-slate-800 dark:text-white">智慧測驗</h1>
                     </div>
                     <div className="flex items-center gap-1 md:gap-3">
-                        {/* 🌟 新增的後臺管理連結 */}
                         <a href="teacher.html" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="進入指揮中控台 (老師專用)">
                             <Settings size={20}/>
                         </a>
@@ -718,13 +761,14 @@
                     <div className="min-h-screen flex flex-col relative pb-safe">
                         <Header />
                         
-                        <main className="flex-1 w-full max-w-3xl mx-auto overflow-hidden relative">
+                        <main className="flex-1 w-full mx-auto overflow-hidden relative" style={{ maxWidth: reportData ? '100%' : '48rem' }}>
                             {!student ? (
                                 <LoginScreen onLogin={setStudent} />
                             ) : reportData ? (
-                                <ReportCard score={reportData.score} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
+                                // 🌟 將所有錯題陣列 (mistakes) 傳入 ReportCard
+                                <ReportCard score={reportData.score} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
                             ) : activeExam ? (
-                                <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, mCount, total) => setReportData({score, mCount, total})} />
+                                <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, mistakesList, total) => setReportData({score, mistakes: mistakesList, total})} />
                             ) : (
                                 <MissionBoard student={student} onStartTest={setActiveExam} />
                             )}
