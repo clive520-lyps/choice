@@ -100,16 +100,13 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 🌟 新增了 Key 圖示 (用於修改密碼)
         import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
-        // 🌟 新增了 sendPasswordResetEmail 與 updatePassword 函式
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
         import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 
-        // 指揮官提供的 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyB9NJXQwdKweStTbATahldDgvtbuGclo34",
             authDomain: "test-reading-71839.firebaseapp.com",
@@ -164,7 +161,6 @@
             const [password, setPassword] = useState('');
             const [loading, setLoading] = useState(false);
             
-            // 忘記密碼 Modal 狀態
             const [isResetModalOpen, setIsResetModalOpen] = useState(false);
             const [resetEmail, setResetEmail] = useState('');
             const [resetLoading, setResetLoading] = useState(false);
@@ -252,7 +248,6 @@
                         </div>
                     </div>
 
-                    {/* 忘記密碼的浮動視窗 (Modal) */}
                     {isResetModalOpen && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
                             <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
@@ -287,12 +282,10 @@
             const [newClassName, setNewClassName] = useState('');
             const [selectedClass, setSelectedClass] = useState(null);
             
-            // 學生編輯狀態
             const [editingStudent, setEditingStudent] = useState(null);
             
             const showToast = useToast();
 
-            // 監聽班級資料
             useEffect(() => {
                 const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
                 const unsub = onSnapshot(q, (snapshot) => {
@@ -301,12 +294,10 @@
                 return () => unsub();
             }, [user.uid]);
 
-            // 監聽選定班級的學生資料
             useEffect(() => {
                 if (!selectedClass) { setStudents([]); return; }
                 const q = query(collection(db, 'students'), where('classId', '==', selectedClass.id));
                 const unsub = onSnapshot(q, (snapshot) => {
-                    // 轉為數字排序座號
                     let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo));
                     setStudents(list);
@@ -327,27 +318,22 @@
                 if (!confirm("警告：確定要刪除此班級嗎？\n⚠️ 此操作將一併「刪除該班級的所有學生」，以及他們所有的「考試與錯題紀錄」，且無法復原！")) return;
                 
                 try {
-                    // 1. 查詢該班級的所有學生
                     const studentsQuery = query(collection(db, 'students'), where('classId', '==', classId));
                     const studentDocs = await getDocs(studentsQuery);
                     
-                    // 2. 查詢該班級的所有成績與錯題紀錄 (關聯未來的學生端)
                     const scoresQuery = query(collection(db, 'scores'), where('classId', '==', classId));
                     const scoreDocs = await getDocs(scoresQuery);
                     
                     const mistakesQuery = query(collection(db, 'mistakes'), where('classId', '==', classId));
                     const mistakeDocs = await getDocs(mistakesQuery);
 
-                    // 3. 收集所有需要刪除的任務 Promise
                     const deletePromises = [];
                     studentDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
                     scoreDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
                     mistakeDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
                     
-                    // 4. 刪除班級本身
                     deletePromises.push(deleteDoc(doc(db, 'classes', classId)));
 
-                    // 5. 批次執行所有刪除作業
                     await Promise.all(deletePromises);
 
                     if(selectedClass?.id === classId) setSelectedClass(null);
@@ -360,7 +346,6 @@
             const deleteStudent = async (studentId) => {
                 if (!confirm("確定要刪除這位學生嗎？相關考試紀錄將會一併刪除。")) return;
                 try {
-                    // 同步刪除該學生的成績與錯題
                     const scoresQuery = query(collection(db, 'scores'), where('studentId', '==', studentId));
                     const scoreDocs = await getDocs(scoresQuery);
                     const mistakesQuery = query(collection(db, 'mistakes'), where('studentId', '==', studentId));
@@ -403,7 +388,7 @@
                     const lines = text.split('\n').filter(line => line.trim() !== '');
                     let successCount = 0;
                     
-                    for (let i = 1; i < lines.length; i++) { // 跳過標題列
+                    for (let i = 1; i < lines.length; i++) { 
                         const [seatNo, name] = lines[i].split(',').map(s => s.trim());
                         if (seatNo && name) {
                             await addDoc(collection(db, 'students'), {
@@ -414,7 +399,7 @@
                         }
                     }
                     showToast(`批次匯入完成，共新增 ${successCount} 筆資料`, "success");
-                    e.target.value = ''; // Reset input
+                    e.target.value = ''; 
                 };
                 reader.readAsText(file);
             };
@@ -486,33 +471,33 @@
                                 </div>
                             </div>
                         )}
-                    </div>
                         
-                    {/* 學生編輯 Modal (浮動視窗) - 移出 glass-card 避免 filter 影響 fixed 定位 */}
-                    {editingStudent && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
-                            <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Edit size={20} className="text-blue-600 dark:text-neon-blue"/> 編輯學生資料</h3>
-                                    <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
-                                        <input type="text" value={editingStudent.seatNo} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                        {/* 學生編輯 Modal (浮動視窗) - 移出 glass-card 避免 filter 影響 fixed 定位 */}
+                        {editingStudent && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
+                                <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                    <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
+                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Edit size={20} className="text-blue-600 dark:text-neon-blue"/> 編輯學生資料</h3>
+                                        <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
-                                        <input type="text" value={editingStudent.name} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                                    <div className="p-6 space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
+                                            <input type="text" value={editingStudent.seatNo} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
+                                            <input type="text" value={editingStudent.name} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
-                                    <button onClick={() => setEditingStudent(null)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
-                                    <button onClick={saveEditStudent} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400 text-white dark:text-dark-main font-bold shadow-md transition">儲存變更</button>
+                                    <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
+                                        <button onClick={() => setEditingStudent(null)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
+                                        <button onClick={saveEditStudent} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400 text-white dark:text-dark-main font-bold shadow-md transition">儲存變更</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -522,7 +507,9 @@
             const [exams, setExams] = useState([]);
             const [newExamTitle, setNewExamTitle] = useState('');
             const [selectedExam, setSelectedExam] = useState(null);
-            const [examTab, setExamTab] = useState('settings'); // 🌟 預設改為 'settings'
+            
+            // 🌟 預設改為 'settings'，且邏輯徹底分開
+            const [examTab, setExamTab] = useState('settings'); 
             const [pasteText, setPasteText] = useState('');
             
             // 試卷名稱編輯狀態
@@ -641,13 +628,11 @@
                 const newQuestions = [];
                 
                 for (let line of lines) {
-                    // Excel 複製出來預設是 tab 分隔 (\t)
                     let cols = line.split('\t').map(s => s.trim());
                     if (cols.length < 6) {
-                        // 容錯機制：如果使用者貼的是 CSV 逗號分隔文字
                         cols = line.split(',').map(s => s.trim());
                     }
-                    if (cols.length >= 6 && cols[0] !== '題目' && cols[0] !== '') { // 跳過可能複製到的標題列或空行
+                    if (cols.length >= 6 && cols[0] !== '題目' && cols[0] !== '') { 
                         newQuestions.push({
                             question: cols[0], correct: cols[1],
                             options: [cols[2], cols[3], cols[4], cols[5]]
@@ -659,7 +644,7 @@
                     const updatedQuestions = overwrite ? newQuestions : [...(selectedExam.questions || []), ...newQuestions];
                     await updateDoc(doc(db, 'exams', selectedExam.id), { questions: updatedQuestions });
                     showToast(overwrite ? `成功覆寫並匯入 ${newQuestions.length} 題` : `成功解析並附加 ${newQuestions.length} 題`, "success");
-                    setPasteText(''); // 清空文字框
+                    setPasteText(''); 
                 } else {
                     showToast("無法解析，請確保包含：題目、答案、選項1~4", "error");
                 }
@@ -685,9 +670,9 @@
                 }
                 const currentQs = [...(selectedExam.questions || [])];
                 if (editIndex !== null) {
-                    currentQs[editIndex] = modalData; // 覆寫編輯
+                    currentQs[editIndex] = modalData; 
                 } else {
-                    currentQs.push(modalData); // 新增
+                    currentQs.push(modalData); 
                 }
                 await updateDoc(doc(db, 'exams', selectedExam.id), { questions: currentQs });
                 setIsModalOpen(false);
@@ -782,7 +767,7 @@
                                     </div>
                                 </div>
                                 
-                                {/* 🌟 頁籤控制 (位置對調) */}
+                                {/* 🌟 頁籤控制 (位置對調：Settings 放前面) */}
                                 <div className="flex gap-6 border-b border-slate-200 dark:border-gray-800 mb-6">
                                     <button onClick={() => setExamTab('settings')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition ${examTab === 'settings' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
                                         <Settings size={18}/> 測驗邏輯設定
@@ -795,70 +780,73 @@
                                 {/* 內容區域 */}
                                 <div className="flex-1 overflow-y-auto pr-2 pb-4">
                                     
-                                    {/* 🌟 頁籤內容：測驗設定 (移至上方優先渲染) */}
+                                    {/* 🌟 頁籤內容 1：測驗邏輯設定 */}
                                     {examTab === 'settings' && (
-                                        <div className="grid grid-cols-1 gap-6 fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
                                             {/* 抽題數量設定 */}
-                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col">
-                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
-                                                
-                                                <div className="mb-6">
+                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-between">
+                                                <div>
+                                                    <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
                                                     <div className="flex justify-between mb-2">
                                                         <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
                                                         <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
                                                     </div>
                                                     <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
-                                                    <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 若設定數量大於總題數，系統將自動以「全題數」進行隨機順序測驗。</p>
                                                 </div>
+                                                <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-4">💡 若設定數量大於總題數，系統將自動以「全題數」進行隨機順序測驗。</p>
+                                            </div>
 
-                                                <div className="flex justify-between items-center py-4 border-t border-slate-100 dark:border-gray-700">
+                                            {/* 作答次數模式 */}
+                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-center">
+                                                <div className="flex justify-between items-center mb-4">
                                                     <div>
-                                                        <div className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
-                                                        <div className="text-[11px] text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
+                                                        <div className="text-base font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
+                                                        <div className="text-xs text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
                                                     </div>
                                                     <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
                                                         <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
                                                     </button>
                                                 </div>
                                             </div>
+                                        </div>
+                                    )}
 
-                                            {/* 傳統 CSV 匯入區 (保留為備用工具) */}
-                                            <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col">
-                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 傳統 CSV 匯入模組</h3>
-                                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/20 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition p-6 text-center">
-                                                    <Upload size={30} className="text-slate-400 dark:text-gray-500 mb-3" />
-                                                    <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">上傳 CSV 格式的題庫檔案，此操作將會<span className="font-bold text-red-500">完全覆寫</span>現有題目。</p>
+                                    {/* 🌟 頁籤內容 2：題庫管理與編輯 */}
+                                    {examTab === 'questions' && (
+                                        <div className="flex flex-col gap-6 fade-in">
+                                            
+                                            {/* 題庫匯入雙模組並列 (Excel & CSV) */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* Excel 快速貼上 */}
+                                                <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col">
+                                                    <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2 mb-2"><Clipboard size={18} className="text-cyan-600 dark:text-neon-cyan"/> 從 Excel 快速貼上</h4>
+                                                    <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-3">依序框選：<span className="font-bold text-cyan-600 dark:text-neon-cyan">題目、正確答案、選項1~4</span>，複製後貼於下方。</p>
+                                                    <textarea 
+                                                        value={pasteText} onChange={e => setPasteText(e.target.value)}
+                                                        placeholder="在此按 Ctrl+V 貼上內容..."
+                                                        className="w-full h-20 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-600 rounded-lg p-3 text-sm text-slate-800 dark:text-gray-200 focus:border-cyan-500 dark:focus:border-neon-cyan outline-none transition resize-none"
+                                                    ></textarea>
+                                                    <div className="mt-3 flex justify-end gap-2">
+                                                        <button onClick={() => handleExcelPaste(true)} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 text-xs rounded-lg transition font-bold border border-transparent">覆寫</button>
+                                                        <button onClick={() => handleExcelPaste(false)} className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-white dark:text-neon-cyan text-xs rounded-lg transition font-bold border border-transparent dark:border-neon-cyan/50">附加</button>
+                                                    </div>
+                                                </div>
+
+                                                {/* 傳統 CSV 匯入 */}
+                                                <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col justify-center items-center text-center shadow-sm dark:shadow-none relative">
+                                                    <h4 className="font-bold text-slate-700 dark:text-gray-300 mb-2 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 傳統 CSV 匯入</h4>
+                                                    <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-4">上傳標準 CSV 格式檔案，此操作將<span className="font-bold text-red-500">覆寫</span>現有題目。</p>
                                                     <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
                                                         選擇 CSV 檔案
                                                         <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
                                                     </label>
-                                                </div>
-                                                <button onClick={downloadExamSample} className="mt-4 text-xs text-cyan-600 dark:text-neon-cyan hover:underline text-center">下載題庫 CSV 範例檔</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 🌟 頁籤內容：題庫管理 (移至下方) */}
-                                    {examTab === 'questions' && (
-                                        <div className="flex flex-col gap-6 fade-in">
-                                            {/* Excel 複製貼上區塊 */}
-                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none">
-                                                <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2 mb-2"><Clipboard size={18} className="text-cyan-600 dark:text-neon-cyan"/> 從 Excel 快速貼上題庫</h4>
-                                                <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">請在 Excel 中依序填寫：<span className="font-bold text-cyan-600 dark:text-neon-cyan">題目、正確答案、選項1、選項2、選項3、選項4</span>。框選複製後直接貼於下方。</p>
-                                                <textarea 
-                                                    value={pasteText} onChange={e => setPasteText(e.target.value)}
-                                                    placeholder="在此按 Ctrl+V 貼上 Excel 內容..."
-                                                    className="w-full h-24 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-600 rounded-lg p-3 text-sm text-slate-800 dark:text-gray-200 focus:border-cyan-500 dark:focus:border-neon-cyan outline-none transition"
-                                                ></textarea>
-                                                <div className="mt-3 flex justify-end gap-3">
-                                                    <button onClick={() => handleExcelPaste(true)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 text-sm rounded-lg transition font-bold border border-transparent">覆寫現有題庫</button>
-                                                    <button onClick={() => handleExcelPaste(false)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-white dark:text-neon-cyan text-sm rounded-lg transition font-bold border border-transparent dark:border-neon-cyan/50">附加至現有題庫</button>
+                                                    <button onClick={downloadExamSample} className="mt-3 text-[11px] text-cyan-600 dark:text-neon-cyan hover:underline text-center">下載題庫 CSV 範例檔</button>
                                                 </div>
                                             </div>
 
                                             {/* 單題管理列表 */}
                                             <div>
-                                                <div className="flex justify-between items-center mb-4">
+                                                <div className="flex justify-between items-center mb-4 mt-2 border-t border-slate-200 dark:border-gray-800 pt-4">
                                                     <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2"><BookOpen size={18}/> 試卷內容檢視</h4>
                                                     <button onClick={() => openModal()} className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue text-sm rounded-lg transition font-bold flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={16}/> 單題新增</button>
                                                 </div>
@@ -888,48 +876,6 @@
                                         </div>
                                     )}
 
-                                    {/* 頁籤內容：測驗設定 */}
-                                    {examTab === 'settings' && (
-                                        <div className="grid grid-cols-1 gap-6 fade-in">
-                                            {/* 抽題數量設定 */}
-                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col">
-                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
-                                                
-                                                <div className="mb-6">
-                                                    <div className="flex justify-between mb-2">
-                                                        <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
-                                                        <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
-                                                    </div>
-                                                    <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
-                                                    <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 若設定數量大於總題數，系統將自動以「全題數」進行隨機順序測驗。</p>
-                                                </div>
-
-                                                <div className="flex justify-between items-center py-4 border-t border-slate-100 dark:border-gray-700">
-                                                    <div>
-                                                        <div className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
-                                                        <div className="text-[11px] text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
-                                                    </div>
-                                                    <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
-                                                        <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* 傳統 CSV 匯入區 (保留為備用工具) */}
-                                            <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col">
-                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 傳統 CSV 匯入模組</h3>
-                                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/20 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition p-6 text-center">
-                                                    <Upload size={30} className="text-slate-400 dark:text-gray-500 mb-3" />
-                                                    <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">上傳 CSV 格式的題庫檔案，此操作將會<span className="font-bold text-red-500">完全覆寫</span>現有題目。</p>
-                                                    <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
-                                                        選擇 CSV 檔案
-                                                        <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
-                                                    </label>
-                                                </div>
-                                                <button onClick={downloadExamSample} className="mt-4 text-xs text-cyan-600 dark:text-neon-cyan hover:underline text-center">下載題庫 CSV 範例檔</button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
