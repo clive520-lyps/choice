@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧測驗系統 | 資料庫轉移指南</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+            background-image: linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(203, 213, 225, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: #00E5FF;
+            color: #0F172A;
+            font-weight: 900;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        code {
+            background-color: #1E293B;
+            color: #38BDF8;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875em;
+        }
+        pre {
+            background-color: #1E293B;
+            color: #E2E8F0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875em;
+            line-height: 1.5;
+        }
+    </style>
+
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen py-10 px-4 md:px-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- 標題區塊 -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 border-4 border-cyan-500 shadow-[0_0_15px_rgba(0,229,255,0.5)] mb-6">
+                <i data-lucide="database" class="text-cyan-600 w-10 h-10"></i>
+            </div>
+            <h1 class="text-4xl font-black tracking-widest text-slate-900 mb-4">系統部署與資料庫轉移指南</h1>
+            <p class="text-lg text-slate-600 font-medium">如何將「智慧測驗系統」綁定到您專屬的 Firebase 資料庫</p>
+        </header>
+
+        <!-- 內容區塊 -->
+        <main class="space-y-8">
+
+            <!-- 步驟一 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8">
+                <div class="flex items-start gap-4 mb-6">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">建立 Firebase 專案</h2>
+                        <p class="text-slate-500 mt-1">取得您專屬的雲端伺服器空間。</p>
+                    </div>
+                </div>
+                <div class="pl-12 space-y-3 text-slate-700">
+                    <p>1. 前往 <a href="https://console.firebase.google.com/" target="_blank" class="text-cyan-600 font-bold hover:underline">Firebase Console (控制台)</a> 並登入您的 Google 帳號。</p>
+                    <p>2. 點擊 <strong>「新增專案 (Add project)」</strong>。</p>
+                    <p>3. 輸入專案名稱（例如：<code>MySmartQuiz</code>），點擊繼續。</p>
+                    <p>4. 建議可關閉 Google Analytics (不強迫)，然後點擊 <strong>「建立專案 (Create project)」</strong>。</p>
+                </div>
+            </section>
+
+            <!-- 步驟二 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8">
+                <div class="flex items-start gap-4 mb-6">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">啟用驗證與資料庫服務</h2>
+                        <p class="text-slate-500 mt-1">開啟老師登入權限與雲端資料儲存功能。</p>
+                    </div>
+                </div>
+                <div class="pl-12 space-y-6 text-slate-700">
+                    <div>
+                        <h3 class="font-bold text-lg text-blue-700 flex items-center gap-2 mb-2"><i data-lucide="key" class="w-5 h-5"></i> 啟用 Authentication (登入驗證)</h3>
+                        <p>1. 在左側選單點擊 <strong>「建構 (Build)」 > 「Authentication」</strong>，然後點擊「開始使用」。</p>
+                        <p>2. 選擇 <strong>「電子郵件/密碼 (Email/Password)」</strong> 提供者。</p>
+                        <p>3. 將第一個選項（電子郵件/密碼）切換為 <strong>「啟用」</strong>，點擊儲存。</p>
+                    </div>
+                    <hr class="border-slate-200">
+                    <div>
+                        <h3 class="font-bold text-lg text-blue-700 flex items-center gap-2 mb-2"><i data-lucide="database" class="w-5 h-5"></i> 啟用 Firestore Database (資料庫)</h3>
+                        <p>1. 在左側選單點擊 <strong>「建構 (Build)」 > 「Firestore Database」</strong>，然後點擊「建立資料庫」。</p>
+                        <p>2. 位置選擇 <code>asia-east1 (台灣)</code> 或任何您喜歡的伺服器位置，點擊下一步。</p>
+                        <p>3. 安全性規則先選擇 <strong>「以測試模式啟動 (Start in test mode)」</strong>（注意：這允許所有人讀寫，正式上線後建議修改安全性規則），點擊建立。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步驟三 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-l-4 border-l-cyan-500">
+                <div class="flex items-start gap-4 mb-6">
+                    <span class="step-number">3</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">取得專案金鑰 (firebaseConfig)</h2>
+                        <p class="text-slate-500 mt-1">這是系統與資料庫連線的靈魂鑰匙。</p>
+                    </div>
+                </div>
+                <div class="pl-12 space-y-3 text-slate-700">
+                    <p>1. 回到 Firebase 控制台首頁 (點擊左上角專案總覽)。</p>
+                    <p>2. 點擊畫面中央的 <strong>「&lt;/&gt;」 (網頁) 圖示</strong> 來新增一個網頁應用程式。</p>
+                    <p>3. 隨便輸入一個應用程式暱稱 (如：<code>QuizApp</code>)，點擊「註冊應用程式」。</p>
+                    <p>4. 註冊後，畫面會顯示一段程式碼，請找到裡面名叫 <code>const firebaseConfig = { ... }</code> 的區塊（如下圖範例所示）。請<strong>將這整個大括號的內容複製下來</strong>。</p>
+                    
+                    <div class="mt-4 relative">
+                        <pre><code>const firebaseConfig = {
+  apiKey: "AIzaSyB9NJXQwdKweStTb...",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdefg"
+};</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步驟四 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-l-4 border-l-red-500">
+                <div class="flex items-start gap-4 mb-6">
+                    <span class="step-number">4</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">修改系統原始碼 (替換金鑰)</h2>
+                        <p class="text-slate-500 mt-1">最後一步，告訴您的網頁該去哪裡存取資料。</p>
+                    </div>
+                </div>
+                <div class="pl-12 space-y-4 text-slate-700">
+                    <p>您需要修改兩個檔案：<strong><code>teacher.html</code></strong> 與 <strong><code>student.html</code></strong>。</p>
+                    <p>請用任何文字編輯器 (如 VS Code、Sublime Text，甚至記事本) 打開這兩個檔案。</p>
+                    <p>利用搜尋功能 (Ctrl+F) 尋找 <code>const firebaseConfig</code>，您會在大約開頭的 <code>&lt;script type="text/babel"&gt;</code> 區塊內找到它。</p>
+                    <p class="font-bold text-red-600 bg-red-50 p-3 rounded-lg">👉 將原本的 firebaseConfig 區塊，整段替換成您在【步驟三】複製的您專屬的設定碼。</p>
+                    
+                    <div class="mt-4 flex flex-col md:flex-row gap-4">
+                        <div class="flex-1 bg-slate-100 p-4 rounded-xl border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="file-code-2" class="w-4 h-4 text-slate-500"></i> 修改 teacher.html</h4>
+                            <p class="text-sm text-slate-600">替換後，存檔。重新開啟網頁，您就能註冊成為您專屬資料庫的最高權限管理員（指揮官）。</p>
+                        </div>
+                        <div class="flex-1 bg-slate-100 p-4 rounded-xl border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="file-code-2" class="w-4 h-4 text-slate-500"></i> 修改 student.html</h4>
+                            <p class="text-sm text-slate-600">替換後，存檔。學生端就能正確讀取到您在老師端發布的班級名單與考卷任務了。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 恭喜完成 -->
+            <section class="text-center py-8">
+                <div class="inline-flex items-center gap-2 bg-green-100 text-green-700 px-6 py-3 rounded-full font-bold text-xl shadow-sm border border-green-200">
+                    <i data-lucide="check-circle-2"></i> 恭喜！系統已成功轉移完畢！
+                </div>
+                <p class="text-slate-500 mt-4">現在，您可以將這兩個 HTML 檔案放上任何支援靜態網頁的空間 (例如 GitHub Pages)，開始您的教學作戰了！</p>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 初始化 Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
