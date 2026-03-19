@@ -117,8 +117,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 🌟 引入 FolderOpen 與 ChevronRight 圖示
-        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight } from 'lucide-react';
+        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight, Target } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
@@ -296,7 +295,7 @@
                             </div>
 
                             <button onClick={handleLogin} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-cyan-600/30 active:scale-95 transition-all flex justify-center items-center gap-2 text-lg">
-                                <Zap size={20}/> 啟動測驗介面
+                                <Zap size={20}/> 啟提測驗介面
                             </button>
                         </div>
                     </div>
@@ -305,11 +304,11 @@
         };
 
         // ==========================================
-        // 🌟 組件：專屬錯題本 (Mistake Book - 群組化分類版)
+        // 🌟 組件：專屬錯題本 (Mistake Book)
         // ==========================================
         const MistakeBook = ({ student, onBack }) => {
             const [groupedExams, setGroupedExams] = useState({});
-            const [selectedExamId, setSelectedExamId] = useState(null); // null 顯示考卷列表；有值則顯示該考卷的錯題
+            const [selectedExamId, setSelectedExamId] = useState(null); 
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
@@ -317,7 +316,6 @@
                     const q = query(collection(db, 'mistakes'), where('studentId', '==', student.id));
                     const snapshot = await getDocs(q);
                     
-                    // 群組化演算法：將錯題以 examId 分類
                     const groups = {};
                     snapshot.docs.forEach(doc => {
                         const data = { id: doc.id, ...doc.data() };
@@ -326,11 +324,10 @@
                                 examId: data.examId,
                                 examTitle: data.examTitle || '未命名試卷',
                                 mistakes: [],
-                                latestTime: data.timestamp // 記錄最新錯題的時間
+                                latestTime: data.timestamp 
                             };
                         }
                         groups[data.examId].mistakes.push(data);
-                        // 更新該考卷的最後作答時間
                         if (data.timestamp > groups[data.examId].latestTime) {
                             groups[data.examId].latestTime = data.timestamp;
                         }
@@ -348,12 +345,10 @@
                 </div>
             );
 
-            // 將群組物件轉換為陣列，並按最新作答時間排序
             const examList = Object.values(groupedExams).sort((a, b) => b.latestTime - a.latestTime);
 
             return (
                 <div className="p-4 md:p-6 fade-in h-full flex flex-col pb-20 overflow-y-auto">
-                    {/* 頂部導航區 */}
                     <div className="mb-6 flex justify-between items-center gap-4 border-b border-slate-200 dark:border-gray-800 pb-4 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl">
@@ -381,7 +376,6 @@
                                 太神啦！您的錯題本目前空空如也！
                             </div>
                         ) : !selectedExamId ? (
-                            // 🌟 視圖 1：顯示考卷列表 (資料夾概念)
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-in">
                                 {examList.map((exam) => (
                                     <div 
@@ -410,7 +404,6 @@
                                 ))}
                             </div>
                         ) : (
-                            // 🌟 視圖 2：顯示特定考卷的錯題細節
                             <div className="space-y-4 fade-in">
                                 <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 border border-amber-200 dark:border-amber-800/50 mb-2">
                                     <AlertTriangle size={18}/> 此區記錄您在「{groupedExams[selectedExamId]?.examTitle}」中所有曾答錯的題目。
@@ -541,7 +534,10 @@
                                     {hasTaken && (
                                         <div className="mt-4 pt-3 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
                                             <span className="text-slate-600 dark:text-gray-300">最佳紀錄</span>
-                                            <span className="text-cyan-600 dark:text-cyan-400 text-lg">{hasTaken.score} PTS</span>
+                                            <span className="flex items-center gap-4">
+                                                {hasTaken.accuracy !== undefined && <span className="text-green-600 dark:text-green-400">{hasTaken.accuracy}% 答對率</span>}
+                                                <span className="text-cyan-600 dark:text-cyan-400 text-lg">{hasTaken.score} PTS</span>
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -560,6 +556,10 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [score, setScore] = useState(0);
             const [combo, setCombo] = useState(0); // 連擊數
+            
+            // 🌟 新增：用於即時計算答對率的狀態 (第一輪限定)
+            const [correctCount, setCorrectCount] = useState(0); 
+            const [answeredCount, setAnsweredCount] = useState(0);
             
             const [timeLeft, setTimeLeft] = useState(30); // 每題 30 秒
             const [mistakes, setMistakes] = useState([]); // 錯題庫 (用於訂正循環)
@@ -611,6 +611,12 @@
                 const currentQ = questions[currentIndex];
                 const isCorrect = !isTimeout && (selectedOpt === currentQ.correctText);
                 
+                // 🌟 即時更新第一輪的答對數與作答數
+                if (!isReviewMode) {
+                    setAnsweredCount(prev => prev + 1);
+                    if (isCorrect) setCorrectCount(prev => prev + 1);
+                }
+
                 // --- 計分與 Combo 邏輯 (時間遞減制 1000 分滿分) ---
                 const timeRatio = Math.max(0, timeLeft / 30); 
                 const BASE_SCORE = Math.max(100, Math.floor(timeRatio * 1000));
@@ -680,6 +686,9 @@
             };
 
             const finalizeTest = async () => {
+                // 🌟 計算最終整體答對率 (第一輪)
+                const finalAccuracy = Math.round(((exam.drawCount - recordedMistakes.length) / exam.drawCount) * 100) || 0;
+
                 const scoreData = {
                     studentId: student.id,
                     studentName: student.name,
@@ -687,6 +696,7 @@
                     examId: exam.id,
                     examTitle: exam.title,
                     score: score,
+                    accuracy: finalAccuracy, // 🌟 將答對率寫入資料庫
                     timestamp: Date.now()
                 };
 
@@ -706,7 +716,7 @@
                     }));
                     await Promise.all(mistakePromises);
 
-                    onComplete(score, recordedMistakes, exam.drawCount);
+                    onComplete(score, finalAccuracy, recordedMistakes, exam.drawCount);
                 } catch (error) {
                     showToast("成績上傳失敗：" + error.message, "error");
                 }
@@ -717,6 +727,9 @@
             const currentQ = questions[currentIndex];
             const isDangerTime = timeLeft <= 5;
             const multiplier = Math.min(1.0 + (combo * 0.1), 2.0).toFixed(1);
+            
+            // 🌟 即時答對率顯示邏輯 (第一輪的當下狀態)
+            const currentAccuracy = answeredCount === 0 ? '--' : Math.round((correctCount / answeredCount) * 100);
 
             return (
                 <div className={`h-full flex flex-col p-4 md:p-6 transition-all duration-300 ${isLocked ? 'force-field-locked' : ''}`}>
@@ -724,13 +737,24 @@
                     <div className="flex justify-between items-end mb-6">
                         <div>
                             <div className="text-xs font-bold text-slate-500 mb-1">{isReviewMode ? '🔥 錯題訂正模式 (得分半價)' : '⚔️ 任務執行中'}</div>
-                            <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="text-xl sm:text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">
                                 題 {currentIndex + 1} <span className="text-slate-400 text-sm">/ {questions.length}</span>
                             </div>
                         </div>
-                        <div className="text-right">
-                            {!isReviewMode && combo >= 2 && <div className="text-sm font-black text-amber-500 animate-bounce">x{multiplier} COMBO!</div>}
-                            <div className="text-3xl font-black text-slate-800 dark:text-white font-mono">{score} <span className="text-sm text-slate-400">PTS</span></div>
+                        <div className="text-right flex flex-col items-end">
+                            {!isReviewMode && combo >= 2 && <div className="text-sm font-black text-amber-500 animate-bounce mb-1">x{multiplier} COMBO!</div>}
+                            
+                            {/* 🌟 新增：即時答對率與積分並排顯示 */}
+                            <div className="flex items-end gap-4 sm:gap-6">
+                                <div className="text-right">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Accuracy</div>
+                                    <div className="text-2xl sm:text-3xl font-black text-green-500 font-mono leading-none">{currentAccuracy}<span className="text-sm sm:text-base">%</span></div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Score</div>
+                                    <div className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white font-mono leading-none">{score} <span className="text-xs sm:text-sm text-slate-400">PTS</span></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -781,7 +805,7 @@
         // ==========================================
         // 組件 4：戰果報告 (Report Card)
         // ==========================================
-        const ReportCard = ({ score, mistakes, totalQuestions, onBack }) => {
+        const ReportCard = ({ score, accuracy, mistakes, totalQuestions, onBack }) => {
             return (
                 <div className="min-h-screen flex flex-col items-center py-10 px-4 fade-in overflow-y-auto">
                     <div className="glass-card p-8 md:p-10 rounded-3xl w-full max-w-2xl text-center shadow-2xl border-t-8 border-t-cyan-500 mb-8 shrink-0">
@@ -789,11 +813,19 @@
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-widest">任務完成</h2>
                         <p className="text-slate-500 dark:text-gray-400 font-bold mb-8">作戰結算報告</p>
                         
-                        <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-6 mb-8 border border-slate-200 dark:border-gray-700">
-                            <div className="text-sm font-bold text-slate-400 mb-1">最終獲得積分</div>
-                            <div className="text-5xl font-black text-cyan-600 dark:text-cyan-400 font-mono mb-2">{score}</div>
-                            <div className="text-xs text-slate-500 bg-slate-200 dark:bg-gray-800 px-3 py-1 rounded-full inline-block">紀錄已同步至指揮部</div>
+                        {/* 🌟 結算雙面板：最終積分與答對率並列 */}
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 w-full">
+                            <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center">
+                                <div className="text-xs font-bold text-slate-400 mb-1">最終獲得積分</div>
+                                <div className="text-3xl sm:text-4xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{score}</div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center">
+                                <div className="text-xs font-bold text-slate-400 mb-1">整體答對率</div>
+                                <div className="text-3xl sm:text-4xl font-black text-green-500 dark:text-green-400 font-mono">{accuracy}%</div>
+                            </div>
                         </div>
+
+                        <div className="text-xs text-slate-500 bg-slate-200 dark:bg-gray-800 px-3 py-1 rounded-full inline-block mb-6">紀錄已同步至指揮部</div>
 
                         <button onClick={onBack} className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-black py-4 px-4 rounded-xl shadow-lg active:scale-95 transition-all">
                             返回任務大廳
@@ -845,7 +877,7 @@
         const App = () => {
             const [student, setStudent] = useState(null);
             const [activeExam, setActiveExam] = useState(null);
-            const [reportData, setReportData] = useState(null); 
+            const [reportData, setReportData] = useState(null); // { score, accuracy, mistakes, total }
             const [isViewingMistakes, setIsViewingMistakes] = useState(false); 
             
             // 全局狀態：主題與音效
@@ -900,9 +932,11 @@
                             {!student ? (
                                 <LoginScreen onLogin={setStudent} />
                             ) : reportData ? (
-                                <ReportCard score={reportData.score} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
+                                // 🌟 將 accuracy 傳入 ReportCard 進行渲染
+                                <ReportCard score={reportData.score} accuracy={reportData.accuracy} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
                             ) : activeExam ? (
-                                <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, mistakesList, total) => setReportData({score, mistakes: mistakesList, total})} />
+                                // 🌟 接收引擎回傳的 finalAccuracy
+                                <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, accuracy, mistakesList, total) => setReportData({score, accuracy, mistakes: mistakesList, total})} />
                             ) : isViewingMistakes ? (
                                 <MistakeBook student={student} onBack={() => setIsViewingMistakes(false)} />
                             ) : (
