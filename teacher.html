@@ -522,7 +522,7 @@
             const [exams, setExams] = useState([]);
             const [newExamTitle, setNewExamTitle] = useState('');
             const [selectedExam, setSelectedExam] = useState(null);
-            const [examTab, setExamTab] = useState('questions'); // 頁籤狀態：'settings' 或 'questions'
+            const [examTab, setExamTab] = useState('settings'); // 🌟 預設改為 'settings'
             const [pasteText, setPasteText] = useState('');
             
             // 試卷名稱編輯狀態
@@ -782,20 +782,63 @@
                                     </div>
                                 </div>
                                 
-                                {/* 頁籤控制 */}
+                                {/* 🌟 頁籤控制 (位置對調) */}
                                 <div className="flex gap-6 border-b border-slate-200 dark:border-gray-800 mb-6">
-                                    <button onClick={() => setExamTab('questions')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition ${examTab === 'questions' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
-                                        <Clipboard size={18}/> 題庫管理與編輯
-                                    </button>
                                     <button onClick={() => setExamTab('settings')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition ${examTab === 'settings' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
                                         <Settings size={18}/> 測驗邏輯設定
+                                    </button>
+                                    <button onClick={() => setExamTab('questions')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition ${examTab === 'questions' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
+                                        <Clipboard size={18}/> 題庫管理與編輯
                                     </button>
                                 </div>
 
                                 {/* 內容區域 */}
                                 <div className="flex-1 overflow-y-auto pr-2 pb-4">
                                     
-                                    {/* 頁籤內容：題庫管理 */}
+                                    {/* 🌟 頁籤內容：測驗設定 (移至上方優先渲染) */}
+                                    {examTab === 'settings' && (
+                                        <div className="grid grid-cols-1 gap-6 fade-in">
+                                            {/* 抽題數量設定 */}
+                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col">
+                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
+                                                
+                                                <div className="mb-6">
+                                                    <div className="flex justify-between mb-2">
+                                                        <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
+                                                        <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
+                                                    </div>
+                                                    <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
+                                                    <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 若設定數量大於總題數，系統將自動以「全題數」進行隨機順序測驗。</p>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-4 border-t border-slate-100 dark:border-gray-700">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
+                                                        <div className="text-[11px] text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
+                                                    </div>
+                                                    <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
+                                                        <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* 傳統 CSV 匯入區 (保留為備用工具) */}
+                                            <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col">
+                                                <h3 className="font-bold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 傳統 CSV 匯入模組</h3>
+                                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/20 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition p-6 text-center">
+                                                    <Upload size={30} className="text-slate-400 dark:text-gray-500 mb-3" />
+                                                    <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">上傳 CSV 格式的題庫檔案，此操作將會<span className="font-bold text-red-500">完全覆寫</span>現有題目。</p>
+                                                    <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
+                                                        選擇 CSV 檔案
+                                                        <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
+                                                    </label>
+                                                </div>
+                                                <button onClick={downloadExamSample} className="mt-4 text-xs text-cyan-600 dark:text-neon-cyan hover:underline text-center">下載題庫 CSV 範例檔</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 🌟 頁籤內容：題庫管理 (移至下方) */}
                                     {examTab === 'questions' && (
                                         <div className="flex flex-col gap-6 fade-in">
                                             {/* Excel 複製貼上區塊 */}
