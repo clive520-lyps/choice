@@ -2,27 +2,37 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧測驗 | 老師中控台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智慧測驗 | 學生終端</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Tailwind 自訂設定 (科技感色彩) -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        neon: { cyan: '#00E5FF', blue: '#2979FF', red: '#FF1744' },
+                        neon: { cyan: '#00E5FF', blue: '#2979FF', red: '#FF1744', green: '#00E676', amber: '#FFC400' },
                         dark: { main: '#0B0F19', card: '#111827', border: '#1F2937' }
                     },
-                    boxShadow: {
-                        'neon-cyan': '0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.3)',
-                        'neon-cyan-hover': '0 0 15px rgba(0, 229, 255, 0.8), 0 0 30px rgba(0, 229, 255, 0.5)',
-                        'neon-blue': '0 0 10px rgba(41, 121, 255, 0.5)',
-                        'neon-red': '0 0 10px rgba(255, 23, 68, 0.5)'
+                    animation: {
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                    },
+                    keyframes: {
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
                     }
                 }
             }
@@ -30,16 +40,13 @@
     </script>
 
     <style>
-        /* 日光/暗黑模式 CSS 變數定義 */
         :root {
             /* 柔和的明亮模式 (日光航艦) */
-            --bg-color: #F8FAFC; /* Slate-50 */
-            --text-main: #0F172A; /* Slate-900 */
+            --bg-color: #F8FAFC;
+            --text-main: #0F172A;
             --grid-color: rgba(15, 23, 42, 0.05);
             --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(203, 213, 225, 0.8); /* Slate-300 */
-            --scrollbar-track: #F8FAFC;
-            --scrollbar-thumb: #CBD5E1;
+            --glass-border: rgba(203, 213, 225, 0.8);
         }
         .dark {
             /* 經典科幻暗黑模式 */
@@ -48,11 +55,8 @@
             --grid-color: rgba(0, 229, 255, 0.03);
             --glass-bg: rgba(17, 24, 39, 0.7);
             --glass-border: rgba(31, 41, 55, 0.8);
-            --scrollbar-track: #0B0F19;
-            --scrollbar-thumb: #1F2937;
         }
 
-        /* 未來感網格背景與滾動條美化 */
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
@@ -60,24 +64,40 @@
             linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 40px 40px;
             font-family: 'Noto Sans TC', sans-serif;
-            transition: background-color 0.3s, color 0.3s, background-image 0.3s;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00E5FF; }
         
-        /* 玻璃擬物化卡片 */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
-            transition: background 0.3s, border 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* 鎖定力場特效 */
+        .force-field-locked {
+            position: relative;
+        }
+        .force-field-locked::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 23, 68, 0.1);
+            border: 2px solid rgba(255, 23, 68, 0.5);
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 10;
+            animation: pulse-red 1s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 
-    <!-- Import Maps 設定 React 與 Firebase -->
     <script type="importmap">
         {
             "imports": {
@@ -85,29 +105,25 @@
                 "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
                 "lucide-react": "https://esm.sh/lucide-react@0.292.0",
                 "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-                "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
                 "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
             }
         }
     </script>
-    
-    <!-- 引入 Babel 用於編譯 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, createContext, useContext } from 'react';
+        import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon } from 'lucide-react';
+        // 🌟 修正：已在此處補上 Settings 與 BookOpen 的引入
+        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen } from 'lucide-react';
         
         // --- Firebase 初始化區塊 (Zero-Config) ---
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+        import { getFirestore, collection, addDoc, doc, onSnapshot, query, where, getDocs, orderBy } from 'firebase/firestore';
 
-        // 指揮官提供的 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyB9NJXQwdKweStTbATahldDgvtbuGclo34",
             authDomain: "test-reading-71839.firebaseapp.com",
@@ -118,10 +134,9 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 全域 Toast 系統 (高科技提示) ---
+        // --- 全域 Toast 系統 ---
         const ToastContext = createContext();
         const ToastProvider = ({ children }) => {
             const [toasts, setToasts] = useState([]);
@@ -133,11 +148,11 @@
             return (
                 <ToastContext.Provider value={showToast}>
                     {children}
-                    <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none">
+                    <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-3 pointer-events-none w-11/12 max-w-sm">
                         {toasts.map(t => (
-                            <div key={t.id} className={`flex items-center gap-3 px-6 py-3 rounded-lg bg-white/95 dark:glass-card border-l-4 shadow-lg transform transition-all animate-[slideIn_0.3s_ease-out] ${t.type === 'error' ? 'border-red-500 dark:border-neon-red shadow-md dark:shadow-neon-red text-slate-800 dark:text-red-100' : 'border-cyan-500 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan text-slate-800 dark:text-cyan-100'}`}>
-                                {t.type === 'error' ? <ShieldAlert size={20} className="text-red-500 dark:text-neon-red" /> : <CheckCircle2 size={20} className="text-cyan-600 dark:text-neon-cyan" />}
-                                <span className="font-medium tracking-wider">{t.message}</span>
+                            <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-white/95 dark:glass-card border-l-4 shadow-lg transform transition-all animate-[pop_0.2s_ease-out] ${t.type === 'error' ? 'border-red-500 text-slate-800 dark:text-red-100' : 'border-cyan-500 text-slate-800 dark:text-cyan-100'}`}>
+                                {t.type === 'error' ? <ShieldAlert size={20} className="text-red-500 dark:text-neon-red shrink-0" /> : <Zap size={20} className="text-cyan-600 dark:text-neon-cyan shrink-0" />}
+                                <span className="font-bold text-sm tracking-wide">{t.message}</span>
                             </div>
                         ))}
                     </div>
@@ -146,482 +161,575 @@
         };
         const useToast = () => useContext(ToastContext);
 
-        // --- 工具函數：CSV 下載與解析 ---
-        const downloadCSV = (filename, content) => {
-            const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        };
-
-        // --- 組件：登入與註冊介面 ---
-        const AuthScreen = ({ isDarkMode, toggleTheme }) => {
-            const [isLogin, setIsLogin] = useState(true);
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [loading, setLoading] = useState(false);
-            const showToast = useToast();
-
-            const handleAuth = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                    if (isLogin) {
-                        await signInWithEmailAndPassword(auth, email, password);
-                        showToast("系統登入成功，歡迎指揮官", "success");
-                    } else {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                        showToast("系統註冊完成，核心權限已開通", "success");
-                    }
-                } catch (error) {
-                    showToast(error.message, "error");
+        // --- 內建電子合成音效引擎 (Web Audio API) ---
+        const useAudioEngine = (isEnabled) => {
+            const audioCtxRef = useRef(null);
+            
+            const initAudio = () => {
+                if (!audioCtxRef.current) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtxRef.current = new AudioContext();
                 }
-                setLoading(false);
+                if (audioCtxRef.current.state === 'suspended') {
+                    audioCtxRef.current.resume();
+                }
             };
 
-            return (
-                <div className="min-h-screen flex items-center justify-center p-4 relative">
-                    <button onClick={toggleTheme} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
-                        {isDarkMode ? <Sun size={24} className="hover:text-yellow-400" /> : <Moon size={24} className="hover:text-indigo-600" />}
-                    </button>
-                    
-                    <div className="glass-card p-10 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 dark:via-neon-cyan to-transparent opacity-50"></div>
-                        
-                        <div className="text-center mb-10">
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-dark-card border border-cyan-500/30 dark:border-neon-cyan/30 shadow-md dark:shadow-neon-cyan mb-4">
-                                <Zap className="text-cyan-600 dark:text-neon-cyan" size={40} />
-                            </div>
-                            <h1 className="text-3xl font-black tracking-widest text-slate-900 dark:text-white">智慧測驗系統</h1>
-                            <p className="text-cyan-700 dark:text-cyan-500/80 mt-2 font-mono text-sm uppercase tracking-widest">Teacher Terminal</p>
-                        </div>
+            const playTone = useCallback((frequency, type, duration, vol=0.1) => {
+                if (!isEnabled || !audioCtxRef.current) return;
+                try {
+                    const osc = audioCtxRef.current.createOscillator();
+                    const gain = audioCtxRef.current.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(frequency, audioCtxRef.current.currentTime);
+                    gain.gain.setValueAtTime(vol, audioCtxRef.current.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtxRef.current.destination);
+                    osc.start();
+                    osc.stop(audioCtxRef.current.currentTime + duration);
+                } catch(e) {}
+            }, [isEnabled]);
 
-                        <form onSubmit={handleAuth} className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">管理員信箱 (Email)</label>
-                                <input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label>
-                                <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
-                            </div>
-                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover transition-all duration-300 flex justify-center items-center">
-                                {loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}
-                            </button>
-                        </form>
-                        
-                        <div className="mt-6 text-center">
-                            <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition">
-                                {isLogin ? '尚未擁有權限？點此註冊' : '已有管理權限？點此登入'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
+            const playCorrect = useCallback(() => {
+                initAudio();
+                playTone(600, 'sine', 0.1, 0.1);
+                setTimeout(() => playTone(800, 'sine', 0.2, 0.15), 100);
+            }, [playTone]);
+
+            const playWrong = useCallback(() => {
+                initAudio();
+                playTone(300, 'sawtooth', 0.2, 0.1);
+                setTimeout(() => playTone(200, 'square', 0.3, 0.15), 150);
+            }, [playTone]);
+
+            return { initAudio, playCorrect, playWrong };
         };
 
-        // --- 組件：班級與學生管理 ---
-        const ClassManager = ({ user }) => {
+        // --- 陣列洗牌工具 (Fisher-Yates) ---
+        const shuffleArray = (arr) => {
+            const newArr = [...arr];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+        };
+
+        // ==========================================
+        // 組件 1：無痛登入介面
+        // ==========================================
+        const LoginScreen = ({ onLogin }) => {
             const [classes, setClasses] = useState([]);
             const [students, setStudents] = useState([]);
-            const [newClassName, setNewClassName] = useState('');
-            const [selectedClass, setSelectedClass] = useState(null);
+            const [selectedClassId, setSelectedClassId] = useState('');
+            const [selectedStudentId, setSelectedStudentId] = useState('');
+            const [loading, setLoading] = useState(true);
             const showToast = useToast();
 
-            // 監聽班級資料
             useEffect(() => {
-                const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
-                const unsub = onSnapshot(q, (snapshot) => {
-                    setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt));
-                });
-                return () => unsub();
-            }, [user.uid]);
-
-            // 監聽選定班級的學生資料
-            useEffect(() => {
-                if (!selectedClass) { setStudents([]); return; }
-                const q = query(collection(db, 'students'), where('classId', '==', selectedClass.id));
-                const unsub = onSnapshot(q, (snapshot) => {
-                    // 轉為數字排序座號
-                    let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo));
-                    setStudents(list);
-                });
-                return () => unsub();
-            }, [selectedClass]);
-
-            const addClass = async () => {
-                if (!newClassName.trim()) return;
-                try {
-                    await addDoc(collection(db, 'classes'), { name: newClassName, teacherId: user.uid, createdAt: Date.now() });
-                    setNewClassName('');
-                    showToast("班級建立成功");
-                } catch (e) { showToast("建立失敗: " + e.message, "error"); }
-            };
-
-            const deleteClass = async (classId) => {
-                if (!confirm("警告：確定要刪除此班級嗎？關聯的學生將會成為孤兒資料。")) return;
-                await deleteDoc(doc(db, 'classes', classId));
-                if(selectedClass?.id === classId) setSelectedClass(null);
-                showToast("班級已刪除", "success");
-            };
-
-            const deleteStudent = async (studentId) => {
-                await deleteDoc(doc(db, 'students', studentId));
-                showToast("學生資料已移除");
-            };
-
-            const handleStudentCSVUpload = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const text = event.target.result;
-                    const lines = text.split('\n').filter(line => line.trim() !== '');
-                    let successCount = 0;
-                    
-                    for (let i = 1; i < lines.length; i++) { // 跳過標題列
-                        const [seatNo, name] = lines[i].split(',').map(s => s.trim());
-                        if (seatNo && name) {
-                            await addDoc(collection(db, 'students'), {
-                                classId: selectedClass.id, teacherId: user.uid,
-                                seatNo, name, createdAt: Date.now()
-                            });
-                            successCount++;
-                        }
-                    }
-                    showToast(`批次匯入完成，共新增 ${successCount} 筆資料`, "success");
-                    e.target.value = ''; // Reset input
-                };
-                reader.readAsText(file);
-            };
-
-            const downloadStudentSample = () => {
-                downloadCSV("學生匯入範例.csv", "座號,姓名\n1,王小明\n2,陳小美\n3,張大華");
-            };
-
-            return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
-                    {/* 左側：班級列表 */}
-                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-blue-500 dark:border-t-neon-blue">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><Users className="text-blue-600 dark:text-neon-blue" /> 班級中樞</h2>
-                        <div className="flex gap-2 mb-6">
-                            <input type="text" placeholder="輸入班級名稱 (如: 101)" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-neon-blue outline-none" value={newClassName} onChange={e=>setNewClassName(e.target.value)} />
-                            <button onClick={addClass} className="bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue px-4 rounded-lg font-bold transition flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={18}/> 新增</button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                            {classes.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">尚無班級，請先新增</p>}
-                            {classes.map(c => (
-                                <div key={c.id} onClick={() => setSelectedClass(c)} className={`p-4 rounded-xl cursor-pointer transition flex justify-between items-center group border ${selectedClass?.id === c.id ? 'bg-blue-50 border-blue-400 shadow-sm dark:bg-neon-blue/10 dark:border-neon-blue dark:shadow-neon-blue text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
-                                    <span className="font-bold text-lg">{c.name} 班</span>
-                                    <button onClick={(e) => { e.stopPropagation(); deleteClass(c.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={18} /></button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 右側：學生名單 */}
-                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
-                        {!selectedClass ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
-                                <Users size={60} className="mb-4 opacity-20" />
-                                <p>請從左側選擇一個班級以管理學生</p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col h-full fade-in">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-bold text-blue-700 dark:text-neon-blue">{selectedClass.name} 班 - 學生名單</h2>
-                                    <div className="flex gap-3">
-                                        <button onClick={downloadStudentSample} className="flex items-center gap-1 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 transition"><Download size={16}/> 範例下載</button>
-                                        <label className="flex items-center gap-1 text-sm bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:hover:bg-cyan-900/80 text-cyan-700 dark:text-neon-cyan px-3 py-2 rounded-lg border border-cyan-300 dark:border-neon-cyan/50 cursor-pointer transition dark:shadow-[0_0_10px_rgba(0,229,255,0.2)]">
-                                            <Upload size={16}/> 批次匯入
-                                            <input type="file" accept=".csv" className="hidden" onChange={handleStudentCSVUpload} />
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-white dark:bg-dark-main rounded-xl border border-slate-200 dark:border-gray-700 flex-1 overflow-hidden flex flex-col">
-                                    <div className="grid grid-cols-4 bg-slate-100 dark:bg-gray-800/50 p-4 text-sm font-bold text-slate-600 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                                        <div className="col-span-1">座號</div>
-                                        <div className="col-span-2">姓名</div>
-                                        <div className="col-span-1 text-right">操作</div>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto">
-                                        {students.length === 0 ? <div className="p-10 text-center text-slate-500 dark:text-gray-500">目前無學生資料，請使用批次匯入</div> :
-                                            students.map(s => (
-                                                <div key={s.id} className="grid grid-cols-4 p-4 border-b border-slate-100 dark:border-gray-800 items-center hover:bg-slate-50 dark:hover:bg-gray-800/30 transition text-slate-800 dark:text-gray-200">
-                                                    <div className="col-span-1 font-mono text-cyan-700 dark:text-neon-cyan font-bold">{s.seatNo}</div>
-                                                    <div className="col-span-2 font-medium">{s.name}</div>
-                                                    <div className="col-span-1 text-right">
-                                                        <button onClick={()=>deleteStudent(s.id)} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red transition"><Trash2 size={18}/></button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 組件：試卷兵工廠 (核心) ---
-        const ExamFactory = ({ user }) => {
-            const [exams, setExams] = useState([]);
-            const [newExamTitle, setNewExamTitle] = useState('');
-            const [selectedExam, setSelectedExam] = useState(null);
-            const showToast = useToast();
-
-            // 監聽試卷資料
-            useEffect(() => {
-                const q = query(collection(db, 'exams'), where('teacherId', '==', user.uid));
-                const unsub = onSnapshot(q, (snapshot) => {
-                    setExams(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt));
-                });
-                return () => unsub();
-            }, [user.uid]);
-
-            const createExam = async () => {
-                if (!newExamTitle.trim()) return;
-                try {
-                    await addDoc(collection(db, 'exams'), {
-                        title: newExamTitle, teacherId: user.uid,
-                        isPublished: false, drawCount: 20, allowMultipleAttempts: true,
-                        questions: [], createdAt: Date.now()
-                    });
-                    setNewExamTitle(''); showToast("試卷架構已建立，請繼續匯入題庫");
-                } catch (e) { showToast(e.message, "error"); }
-            };
-
-            const deleteExam = async (examId) => {
-                if(!confirm("確定要銷毀此試卷嗎？此操作不可逆！")) return;
-                await deleteDoc(doc(db, 'exams', examId));
-                if(selectedExam?.id === examId) setSelectedExam(null);
-                showToast("試卷已銷毀", "success");
-            };
-
-            const togglePublish = async (exam) => {
-                await updateDoc(doc(db, 'exams', exam.id), { isPublished: !exam.isPublished });
-                showToast(exam.isPublished ? "試卷已下架" : "試卷已成功派送至學生端！", "success");
-            };
-
-            const updateExamSetting = async (field, value) => {
-                if(!selectedExam) return;
-                await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: value });
-                showToast("設定已同步儲存");
-            };
-
-            const handleQuestionCSVUpload = (e) => {
-                if(!selectedExam) return;
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const text = event.target.result;
-                    const lines = text.split('\n').filter(line => line.trim() !== '');
-                    const newQuestions = [];
-                    
-                    for (let i = 1; i < lines.length; i++) {
-                        const cols = lines[i].split(',').map(s => s.trim());
-                        if (cols.length >= 6) {
-                            newQuestions.push({
-                                question: cols[0], correct: cols[1],
-                                options: [cols[2], cols[3], cols[4], cols[5]]
-                            });
-                        }
-                    }
-                    if(newQuestions.length > 0) {
-                        await updateDoc(doc(db, 'exams', selectedExam.id), { questions: newQuestions });
-                        showToast(`題庫匯入成功，共 ${newQuestions.length} 題`, "success");
-                    } else {
-                        showToast("無法解析題庫，請檢查格式", "error");
-                    }
-                    e.target.value = '';
-                };
-                reader.readAsText(file);
-            };
-
-            const downloadExamSample = () => {
-                downloadCSV("試卷題庫範例.csv", "題目,正確答案(輸入選項內容或1~4數字),選項1,選項2,選項3,選項4\n「躊躇」的意思是什麼？,1,猶豫不決,非常快樂,走路很快,大聲說話\n蘋果的英文是什麼？,Apple,Banana,Apple,Orange,Grape");
-            };
-
-            return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
-                    {/* 左側：試卷庫 */}
-                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-cyan-500 dark:border-t-neon-cyan">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><BookOpen className="text-cyan-600 dark:text-neon-cyan" /> 試卷庫</h2>
-                        <div className="flex gap-2 mb-6">
-                            <input type="text" placeholder="新建試卷名稱" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 dark:focus:border-neon-cyan outline-none" value={newExamTitle} onChange={e=>setNewExamTitle(e.target.value)} />
-                            <button onClick={createExam} className="bg-cyan-100 hover:bg-cyan-200 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-cyan-700 dark:text-neon-cyan px-4 rounded-lg font-bold transition flex items-center gap-1 border border-cyan-200 dark:border-neon-cyan/50"><Plus size={18}/> 建立</button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                            {exams.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">資料庫空虛，請建立試卷</p>}
-                            {exams.map(ex => (
-                                <div key={ex.id} onClick={() => setSelectedExam(ex)} className={`p-4 rounded-xl cursor-pointer transition flex flex-col gap-2 border group ${selectedExam?.id === ex.id ? 'bg-cyan-50 border-cyan-400 shadow-sm dark:bg-neon-cyan/10 dark:border-neon-cyan dark:shadow-neon-cyan text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
-                                    <div className="flex justify-between items-center">
-                                        <span className="font-bold">{ex.title}</span>
-                                        <div className="flex items-center gap-2">
-                                            {ex.isPublished ? <span className="text-[10px] bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main px-2 py-1 rounded font-bold">已派送</span> : <span className="text-[10px] bg-slate-300 dark:bg-gray-700 text-slate-600 dark:text-gray-300 px-2 py-1 rounded font-bold">草稿</span>}
-                                            <button onClick={(e) => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
-                                        </div>
-                                    </div>
-                                    <div className="text-xs text-slate-500 dark:text-gray-500">題庫：{ex.questions?.length || 0} 題</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 右側：試卷編輯與派送中心 */}
-                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
-                        {!selectedExam ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
-                                <Settings size={60} className="mb-4 opacity-20" />
-                                <p>請選擇一份試卷進入控制中心</p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col h-full fade-in">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-gray-800">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{selectedExam.title}</h2>
-                                        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">目前題庫數量：<span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold">{selectedExam.questions?.length || 0}</span> 題</p>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <button onClick={() => togglePublish(selectedExam)} className={`px-6 py-2 rounded-lg font-bold text-sm tracking-widest transition-all shadow-md flex items-center justify-center gap-2 ${selectedExam.isPublished ? 'bg-transparent border border-slate-400 dark:border-gray-500 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white' : 'bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main hover:bg-cyan-700 dark:hover:bg-cyan-400 dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover'}`}>
-                                            <Zap size={16} /> {selectedExam.isPublished ? '停止派送' : '🚀 立即派送'}
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-                                    {/* 題庫匯入區 */}
-                                    <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col">
-                                        <h3 className="font-bold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 題庫匯入模組</h3>
-                                        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/20 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition p-6 text-center">
-                                            <Upload size={40} className="text-slate-400 dark:text-gray-500 mb-3" />
-                                            <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">上傳 CSV 格式的題庫檔案，這將覆寫原有題目。</p>
-                                            <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
-                                                選擇 CSV 檔案
-                                                <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
-                                            </label>
-                                        </div>
-                                        <button onClick={downloadExamSample} className="mt-4 text-xs text-cyan-600 dark:text-neon-cyan hover:underline text-center">需要範本？下載題庫 CSV 範例檔</button>
-                                    </div>
-
-                                    {/* 測驗邏輯設定區 */}
-                                    <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col gap-6">
-                                        <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 測驗邏輯設定</h3>
-                                        
-                                        {/* 抽題數量 */}
-                                        <div className="bg-white dark:bg-gray-800/40 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none">
-                                            <div className="flex justify-between mb-2">
-                                                <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
-                                                <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-2 rounded">{selectedExam.drawCount} 題</span>
-                                            </div>
-                                            <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
-                                            <p className="text-[10px] text-slate-500 dark:text-gray-500 mt-2">提示：若設定數值大於總題數，將會以全題數進行隨機測驗。</p>
-                                        </div>
-
-                                        {/* 作答次數切換 */}
-                                        <div className="bg-white dark:bg-gray-800/40 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex justify-between items-center">
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
-                                                <div className="text-[10px] text-slate-500 dark:text-gray-500">開啟以允許學生重複測驗；關閉則為單次嚴格測驗。</div>
-                                            </div>
-                                            {/* 未來感 Toggle */}
-                                            <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
-                                                <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 主程式：儀表板框架 ---
-        const Dashboard = ({ user, isDarkMode, toggleTheme }) => {
-            const [view, setView] = useState('classes');
-            
-            return (
-                <div className="min-h-screen flex flex-col">
-                    {/* 頂部導航列 */}
-                    <header className="glass-card border-b-0 border-cyan-500/20 dark:border-neon-cyan/20 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
-                        <div className="flex items-center gap-3">
-                            <Zap className="text-cyan-600 dark:text-neon-cyan" size={24} />
-                            <h1 className="text-xl font-bold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-gray-400">系統中控台</h1>
-                            <span className="text-xs border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 px-2 py-0.5 rounded-full ml-2">v2.0 Soft-Light</span>
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-4">
-                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
-                                {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
-                            </button>
-                            <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
-                            <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-neon-red transition px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"><LogOut size={16}/> 登出連線</button>
-                        </div>
-                    </header>
-
-                    {/* 主內容區 */}
-                    <main className="flex-1 container mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6 h-[calc(100vh-76px)]">
-                        {/* 左側選單 */}
-                        <aside className="w-full md:w-48 lg:w-56 shrink-0 flex flex-col gap-2">
-                            <button onClick={()=>setView('classes')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='classes' ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm dark:bg-neon-blue/20 dark:text-neon-blue dark:border-neon-blue/50 dark:shadow-neon-blue' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
-                                <Users size={20}/> 班級管理
-                            </button>
-                            <button onClick={()=>setView('exams')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='exams' ? 'bg-cyan-100 text-cyan-700 border border-cyan-300 shadow-sm dark:bg-neon-cyan/20 dark:text-neon-cyan dark:border-neon-cyan/50 dark:shadow-neon-cyan' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
-                                <BookOpen size={20}/> 試卷兵工廠
-                            </button>
-                        </aside>
-                        
-                        {/* 動態內容渲染 */}
-                        <section className="flex-1 min-h-0 relative">
-                            {view === 'classes' && <ClassManager user={user} />}
-                            {view === 'exams' && <ExamFactory user={user} />}
-                        </section>
-                    </main>
-                </div>
-            );
-        };
-
-        // --- App Entry Point ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [authChecking, setAuthChecking] = useState(true);
-            const [isDarkMode, setIsDarkMode] = useState(true); // 預設暗黑模式
-
-            // 主題切換邏輯
-            useEffect(() => {
-                if (isDarkMode) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
+                // 嘗試從 LocalStorage 自動登入
+                const savedStudent = localStorage.getItem('smartQuizStudent');
+                if (savedStudent) {
+                    onLogin(JSON.parse(savedStudent));
+                    return;
                 }
-            }, [isDarkMode]);
-
-            const toggleTheme = () => setIsDarkMode(!isDarkMode);
-
-            useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-                    setUser(currentUser);
-                    setAuthChecking(false);
-                });
-                return () => unsubscribe();
+                
+                // 載入班級列表
+                const fetchClasses = async () => {
+                    const snap = await getDocs(collection(db, 'classes'));
+                    setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    setLoading(false);
+                };
+                fetchClasses();
             }, []);
 
-            if (authChecking) return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-main">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan"></div>
+            useEffect(() => {
+                if (!selectedClassId) { setStudents([]); return; }
+                const fetchStudents = async () => {
+                    const q = query(collection(db, 'students'), where('classId', '==', selectedClassId));
+                    const snap = await getDocs(q);
+                    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo));
+                    setStudents(list);
+                };
+                fetchStudents();
+            }, [selectedClassId]);
+
+            const handleLogin = () => {
+                if(!selectedStudentId) {
+                    showToast("請選擇您的姓名", "error");
+                    return;
+                }
+                const studentData = students.find(s => s.id === selectedStudentId);
+                localStorage.setItem('smartQuizStudent', JSON.stringify(studentData));
+                showToast(`登入成功！歡迎，${studentData.name}`);
+                onLogin(studentData);
+            };
+
+            if(loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"></div></div>;
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white dark:bg-dark-card border-4 border-cyan-500 shadow-lg shadow-cyan-500/30 mb-4">
+                            <UserCircle className="text-cyan-600 dark:text-cyan-400" size={50} />
+                        </div>
+                        <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-wider">身份識別</h1>
+                        <p className="text-slate-500 dark:text-cyan-500/80 mt-2 font-bold tracking-widest">STUDENT TERMINAL</p>
+                    </div>
+
+                    <div className="glass-card p-8 rounded-3xl w-full max-w-md shadow-2xl">
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請選擇您的班級</label>
+                                <select className="w-full bg-slate-50 dark:bg-dark-main border-2 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition font-bold" value={selectedClassId} onChange={e => {setSelectedClassId(e.target.value); setSelectedStudentId('');}}>
+                                    <option value="">-- 點擊選擇班級 --</option>
+                                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            
+                            <div className={`transition-all duration-300 ${selectedClassId ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請選擇您的姓名</label>
+                                <select className="w-full bg-slate-50 dark:bg-dark-main border-2 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition font-bold" value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
+                                    <option value="">-- 點擊選擇姓名 --</option>
+                                    {students.map(s => <option key={s.id} value={s.id}>{s.seatNo}號 - {s.name}</option>)}
+                                </select>
+                            </div>
+
+                            <button onClick={handleLogin} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-cyan-600/30 active:scale-95 transition-all flex justify-center items-center gap-2 text-lg">
+                                <Zap size={20}/> 啟動測驗介面
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            );
+        };
+
+        // ==========================================
+        // 組件 2：任務大廳 (Mission Board)
+        // ==========================================
+        const MissionBoard = ({ student, onStartTest }) => {
+            const [exams, setExams] = useState([]);
+            const [scores, setScores] = useState({}); // 記錄考過的成績
+            const showToast = useToast();
+
+            useEffect(() => {
+                // 監聽有開放派送的試卷 (且屬於該老師的)
+                const q = query(collection(db, 'exams'), where('isPublished', '==', true), where('teacherId', '==', student.teacherId));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    setExams(snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=>b.createdAt - a.createdAt));
+                });
+                return () => unsub();
+            }, [student.teacherId]);
+
+            useEffect(() => {
+                // 監聽該學生的成績紀錄
+                const sq = query(collection(db, 'scores'), where('studentId', '==', student.id));
+                const unsubScore = onSnapshot(sq, (snapshot) => {
+                    const scoreMap = {};
+                    snapshot.docs.forEach(d => {
+                        const data = d.data();
+                        // 紀錄該考卷的最高分或最近一次成績狀態
+                        if(!scoreMap[data.examId] || data.score > scoreMap[data.examId].score) {
+                            scoreMap[data.examId] = data;
+                        }
+                    });
+                    setScores(scoreMap);
+                });
+                return () => unsubScore();
+            }, [student.id]);
+
+            const handleExamClick = (exam) => {
+                const hasTaken = scores[exam.id];
+                if (!exam.allowMultipleAttempts && hasTaken) {
+                    showToast("🛑 此為嚴格測驗，您已完成作答，無法重複挑戰", "error");
+                    return;
+                }
+                onStartTest(exam);
+            };
+
+            return (
+                <div className="p-4 md:p-6 fade-in h-full flex flex-col">
+                    <div className="mb-6 flex items-center gap-3">
+                        <div className="p-3 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl">
+                            <Zap className="text-cyan-600 dark:text-cyan-400" size={24}/>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-white">作戰任務面板</h2>
+                            <p className="text-sm text-slate-500 dark:text-gray-400">請選擇下方已解鎖的測驗任務</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 pb-20">
+                        {exams.length === 0 ? (
+                            <div className="text-center py-20 text-slate-500">
+                                <ShieldAlert size={48} className="mx-auto mb-4 opacity-20" />
+                                <p className="font-bold">目前指揮部尚未派送任何任務</p>
+                            </div>
+                        ) : exams.map(exam => {
+                            const hasTaken = scores[exam.id];
+                            const isLocked = !exam.allowMultipleAttempts && hasTaken;
+
+                            return (
+                                <div key={exam.id} onClick={() => handleExamClick(exam)} className={`relative overflow-hidden p-5 rounded-2xl border-2 transition-all cursor-pointer group ${isLocked ? 'bg-slate-100 dark:bg-gray-800/50 border-slate-300 dark:border-gray-700 opacity-70 grayscale' : 'glass-card border-transparent hover:border-cyan-400 shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98]'}`}>
+                                    {isLocked && (
+                                        <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                                            已鎖定 (完成)
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition">{exam.title}</h3>
+                                            <div className="flex gap-3 text-xs font-bold text-slate-500 dark:text-gray-400">
+                                                <span className="flex items-center gap-1"><BookOpen size={14}/> 隨機 {exam.drawCount} 題</span>
+                                                <span className="flex items-center gap-1">
+                                                    {exam.allowMultipleAttempts ? <span className="text-green-600 dark:text-neon-green flex items-center gap-1"><CheckCircle size={14}/> 無限刷題</span> : <span className="text-amber-600 dark:text-neon-amber flex items-center gap-1"><ShieldAlert size={14}/> 單次嚴格測驗</span>}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {!isLocked && (
+                                            <div className="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-white transition">
+                                                <Play size={20} className={hasTaken ? "text-cyan-600 dark:text-cyan-400 group-hover:text-white" : "text-cyan-600 dark:text-cyan-400 group-hover:text-white ml-1"} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {hasTaken && (
+                                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
+                                            <span className="text-slate-600 dark:text-gray-300">最佳紀錄</span>
+                                            <span className="text-cyan-600 dark:text-cyan-400 text-lg">{hasTaken.score} PTS</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 組件 3：核心測驗引擎 (Combat Engine)
+        // ==========================================
+        const QuizEngine = ({ student, exam, onComplete, audioEngine }) => {
+            const [questions, setQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [combo, setCombo] = useState(0); // 連擊數
+            
+            const [timeLeft, setTimeLeft] = useState(30); // 每題 30 秒
+            const [mistakes, setMistakes] = useState([]); // 錯題庫
+            
+            const [isReviewMode, setIsReviewMode] = useState(false); // 是否為訂正模式
+            const [isLocked, setIsLocked] = useState(false); // 防亂點冷卻鎖定
+            const [animState, setAnimState] = useState(''); // 'correct', 'wrong', ''
+
+            const showToast = useToast();
+
+            // 初始化抽題
+            useEffect(() => {
+                // Fisher-Yates 洗牌
+                const shuffled = shuffleArray(exam.questions || []);
+                // 裁切指定數量
+                const drawn = shuffled.slice(0, Math.min(exam.drawCount, shuffled.length));
+                // 將選項也洗牌 (防止背答案位置)
+                const processed = drawn.map(q => {
+                    // 找出正確答案字串
+                    const correctText = /^[1-4]$/.test(q.correct) ? q.options[parseInt(q.correct)-1] : q.correct;
+                    const shuffledOptions = shuffleArray([...q.options]);
+                    return { ...q, correctText, displayOptions: shuffledOptions };
+                });
+                setQuestions(processed);
+                audioEngine.initAudio(); // 初始化音訊環境
+            }, []);
+
+            // 倒數計時器
+            useEffect(() => {
+                if (questions.length === 0 || isLocked) return;
+                
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 1) {
+                            clearInterval(timer);
+                            handleTimeOut();
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [currentIndex, questions.length, isLocked]);
+
+            const handleTimeOut = () => {
+                handleAnswer(null, true); // Time out 視同答錯
+            };
+
+            const handleAnswer = (selectedOpt, isTimeout = false) => {
+                if (isLocked) return;
+                
+                const currentQ = questions[currentIndex];
+                const isCorrect = !isTimeout && (selectedOpt === currentQ.correctText);
+                
+                // --- 計分與 Combo 邏輯 ---
+                const BASE_SCORE = 10;
+                let earnedPoints = 0;
+
+                if (isCorrect) {
+                    audioEngine.playCorrect();
+                    setAnimState('correct');
+                    
+                    if (isReviewMode) {
+                        // 訂正模式：半價，無 Combo
+                        earnedPoints = BASE_SCORE / 2;
+                        setScore(prev => prev + earnedPoints);
+                    } else {
+                        // 正常模式：計算 Combo
+                        const currentMultiplier = Math.min(1.0 + (combo * 0.1), 2.0); // 最高 2.0 倍
+                        earnedPoints = Math.round(BASE_SCORE * currentMultiplier);
+                        setScore(prev => prev + earnedPoints);
+                        setCombo(prev => prev + 1);
+                        if(combo > 1) showToast(`${combo} 連擊！分數加成 x${currentMultiplier.toFixed(1)}`, 'success');
+                    }
+                } else {
+                    audioEngine.playWrong();
+                    setAnimState('wrong');
+                    setCombo(0); // 中斷 Combo
+                    
+                    // 紀錄錯題 (如果還沒被記過)
+                    if (!mistakes.find(m => m.question === currentQ.question)) {
+                        setMistakes(prev => [...prev, {
+                            ...currentQ,
+                            selected: selectedOpt || '未作答'
+                        }]);
+                    }
+
+                    // 防猜機制：連續答錯或亂點鎖定
+                    setIsLocked(true);
+                    setTimeout(() => setIsLocked(false), 3000); // 鎖定 3 秒
+                }
+
+                // --- 換題邏輯 ---
+                setTimeout(() => {
+                    setAnimState('');
+                    if (currentIndex < questions.length - 1) {
+                        setCurrentIndex(prev => prev + 1);
+                        setTimeLeft(30);
+                    } else {
+                        // 本回合結束
+                        handleRoundComplete();
+                    }
+                }, 1000);
+            };
+
+            const handleRoundComplete = () => {
+                if (!isReviewMode && mistakes.length > 0) {
+                    // 進入訂正模式
+                    showToast(`第一輪結束！準備進入錯題訂正 (共 ${mistakes.length} 題)，訂正分數減半！`, 'error');
+                    setIsReviewMode(true);
+                    // 重新將錯題洗牌作為下一輪題目
+                    setQuestions(shuffleArray(mistakes));
+                    setCurrentIndex(0);
+                    setTimeLeft(30);
+                    setMistakes([]); // 清空以記錄「訂正又錯」的題目
+                } else {
+                    // 結束所有測驗 (如果訂正模式還錯，就不再訂正了，直接結算)
+                    finalizeTest();
+                }
+            };
+
+            const finalizeTest = async () => {
+                const finalMistakes = isReviewMode ? mistakes : mistakes; // 最終殘留的錯題
+                
+                // 準備寫入資料庫
+                const scoreData = {
+                    studentId: student.id,
+                    studentName: student.name,
+                    classId: student.classId,
+                    examId: exam.id,
+                    examTitle: exam.title,
+                    score: score,
+                    timestamp: Date.now()
+                };
+
+                try {
+                    // 1. 寫入成績
+                    await addDoc(collection(db, 'scores'), scoreData);
+                    
+                    // 2. 寫入錯題
+                    const mistakePromises = finalMistakes.map(m => addDoc(collection(db, 'mistakes'), {
+                        studentId: student.id, classId: student.classId, examId: exam.id,
+                        question: m.question, correct: m.correctText, selected: m.selected, options: m.options,
+                        timestamp: Date.now()
+                    }));
+                    await Promise.all(mistakePromises);
+
+                    // 切換至結算畫面
+                    onComplete(score, finalMistakes.length, questions.length);
+                } catch (error) {
+                    showToast("成績上傳失敗：" + error.message, "error");
+                }
+            };
+
+            if (questions.length === 0) return <div className="p-10 text-center">正在解析作戰任務...</div>;
+
+            const currentQ = questions[currentIndex];
+            const isDangerTime = timeLeft <= 5;
+            const multiplier = Math.min(1.0 + (combo * 0.1), 2.0).toFixed(1);
+
+            return (
+                <div className={`h-full flex flex-col p-4 md:p-6 transition-all duration-300 ${isLocked ? 'force-field-locked' : ''}`}>
+                    {/* 頂部儀表板 */}
+                    <div className="flex justify-between items-end mb-6">
+                        <div>
+                            <div className="text-xs font-bold text-slate-500 mb-1">{isReviewMode ? '🔥 錯題訂正模式 (得分半價)' : '⚔️ 任務執行中'}</div>
+                            <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">
+                                題 {currentIndex + 1} <span className="text-slate-400 text-sm">/ {questions.length}</span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            {!isReviewMode && combo >= 2 && <div className="text-sm font-black text-amber-500 animate-bounce">x{multiplier} COMBO!</div>}
+                            <div className="text-3xl font-black text-slate-800 dark:text-white font-mono">{score} <span className="text-sm text-slate-400">PTS</span></div>
+                        </div>
+                    </div>
+
+                    {/* 進度條與計時器 */}
+                    <div className="relative h-2 bg-slate-200 dark:bg-gray-800 rounded-full mb-8 overflow-hidden">
+                        <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${isDangerTime ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${(timeLeft / 30) * 100}%` }}></div>
+                    </div>
+
+                    {/* 題目區塊 */}
+                    <div className={`glass-card p-6 md:p-8 rounded-3xl mb-6 shadow-lg min-h-[120px] flex items-center justify-center transition ${animState === 'wrong' ? 'animate-shake border-red-500' : ''} ${animState === 'correct' ? 'border-green-500 shadow-green-500/20' : ''}`}>
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white leading-relaxed text-center">{currentQ.question}</h2>
+                    </div>
+
+                    {/* 選項區塊 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                        {currentQ.displayOptions.map((opt, i) => {
+                            let btnStyle = "bg-white dark:bg-dark-card border-2 border-slate-200 dark:border-gray-700 text-slate-800 dark:text-gray-200 hover:border-cyan-400 dark:hover:border-cyan-500 hover:shadow-lg active:scale-95";
+                            
+                            // 答題後的視覺回饋
+                            if (animState !== '') {
+                                if (opt === currentQ.correctText) btnStyle = "bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/40 transform scale-[1.02]";
+                                else btnStyle = "bg-slate-100 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-400 opacity-50";
+                            }
+
+                            return (
+                                <button 
+                                    key={i} 
+                                    disabled={isLocked || animState !== ''}
+                                    onClick={() => handleAnswer(opt)}
+                                    className={`p-5 rounded-2xl font-bold text-lg transition-all duration-200 text-left flex items-center gap-3 ${btnStyle}`}
+                                >
+                                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm shrink-0 ${animState !== '' && opt === currentQ.correctText ? 'bg-white text-green-600' : 'bg-slate-100 dark:bg-gray-800 text-slate-500'}`}>{String.fromCharCode(65 + i)}</span>
+                                    <span>{opt}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* 鎖定提示 */}
+                    {isLocked && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600/90 text-white px-8 py-4 rounded-2xl font-black tracking-widest text-xl shadow-2xl flex items-center gap-2 animate-[pop_0.2s_ease-out] z-50 backdrop-blur-sm">
+                            <ShieldAlert size={28}/> 系統鎖定冷卻中
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 組件 4：戰果報告 (Report Card)
+        // ==========================================
+        const ReportCard = ({ score, totalQuestions, onBack }) => {
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 fade-in">
+                    <div className="glass-card p-10 rounded-3xl w-full max-w-sm text-center shadow-2xl border-t-8 border-t-cyan-500">
+                        <Trophy className="mx-auto text-amber-400 mb-6" size={80} />
+                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-widest">任務完成</h2>
+                        <p className="text-slate-500 dark:text-gray-400 font-bold mb-8">作戰結算報告</p>
+                        
+                        <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-6 mb-8 border border-slate-200 dark:border-gray-700">
+                            <div className="text-sm font-bold text-slate-400 mb-1">最終獲得積分</div>
+                            <div className="text-5xl font-black text-cyan-600 dark:text-cyan-400 font-mono mb-2">{score}</div>
+                            <div className="text-xs text-slate-500 bg-slate-200 dark:bg-gray-800 px-3 py-1 rounded-full inline-block">紀錄已同步至指揮部</div>
+                        </div>
+
+                        <button onClick={onBack} className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-black py-4 px-4 rounded-xl shadow-lg active:scale-95 transition-all">
+                            返回任務大廳
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 主程式 (App Router)
+        // ==========================================
+        const App = () => {
+            const [student, setStudent] = useState(null);
+            const [activeExam, setActiveExam] = useState(null);
+            const [reportData, setReportData] = useState(null); // { score, mistakeCount, total }
+            
+            // 全局狀態：主題與音效
+            const [isDarkMode, setIsDarkMode] = useState(false); // 預設日光航艦
+            const [isSoundEnabled, setIsSoundEnabled] = useState(false); // 預設靜音
+            const audioEngine = useAudioEngine(isSoundEnabled);
+
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', isDarkMode);
+            }, [isDarkMode]);
+
+            const handleLogout = () => {
+                localStorage.removeItem('smartQuizStudent');
+                setStudent(null);
+                setActiveExam(null);
+                setReportData(null);
+            };
+
+            const Header = () => (
+                <header className="glass-card border-b-0 border-cyan-500/20 px-4 md:px-6 py-3 flex justify-between items-center sticky top-0 z-40">
+                    <div className="flex items-center gap-2">
+                        <Zap className="text-cyan-600 dark:text-cyan-400" size={20} />
+                        <h1 className="text-lg font-black tracking-widest text-slate-800 dark:text-white">智慧測驗</h1>
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-3">
+                        {/* 🌟 新增的後臺管理連結 */}
+                        <a href="teacher.html" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="進入指揮中控台 (老師專用)">
+                            <Settings size={20}/>
+                        </a>
+
+                        <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className={`p-2 rounded-full transition ${isSoundEnabled ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-800'}`} title="音效切換">
+                            {isSoundEnabled ? <Volume2 size={20}/> : <VolumeX size={20}/>}
+                        </button>
+                        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="佈景主題切換">
+                            {isDarkMode ? <Sun size={20} className="hover:text-amber-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
+                        </button>
+                        {student && (
+                            <button onClick={handleLogout} className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition text-red-500 ml-2" title="登出">
+                                <LogOut size={20}/>
+                            </button>
+                        )}
+                    </div>
+                </header>
             );
 
             return (
                 <ToastProvider>
-                    {user ? <Dashboard user={user} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <AuthScreen isDarkMode={isDarkMode} toggleTheme={toggleTheme} />}
+                    <div className="min-h-screen flex flex-col relative pb-safe">
+                        <Header />
+                        
+                        <main className="flex-1 w-full max-w-3xl mx-auto overflow-hidden relative">
+                            {!student ? (
+                                <LoginScreen onLogin={setStudent} />
+                            ) : reportData ? (
+                                <ReportCard score={reportData.score} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
+                            ) : activeExam ? (
+                                <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, mCount, total) => setReportData({score, mCount, total})} />
+                            ) : (
+                                <MissionBoard student={student} onStartTest={setActiveExam} />
+                            )}
+                        </main>
+                    </div>
                 </ToastProvider>
             );
         };
