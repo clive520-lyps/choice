@@ -81,7 +81,7 @@
         .animate-item { animation: slideInUp 0.4s ease-out forwards; }
     </style>
 
-    <!-- 🌟 新增 react-dom 到 Import Maps 支援 Portal 功能 -->
+    <!-- Import Maps 支援 Portal 功能 -->
     <script type="importmap">
         {
             "imports": {
@@ -103,7 +103,6 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 🌟 引入 createPortal (空間傳送門)
         import { createPortal } from 'react-dom';
         import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2 } from 'lucide-react';
         
@@ -124,9 +123,38 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🌟 建立全域的 Modal Portal 元件 (突破 glass-card 的邊界限制)
-        const ModalPortal = ({ children }) => {
-            return createPortal(children, document.body);
+        // 🌟 空間傳送門 (Portal)
+        const ModalPortal = ({ children }) => createPortal(children, document.body);
+
+        // ==========================================
+        // 🌟 共用組件：BaseModal (彈出視窗底層架構)
+        // ==========================================
+        const BaseModal = ({ isOpen, onClose, title, icon: Icon, iconColor = "text-cyan-600 dark:text-neon-cyan", btnColor = "bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400", children, confirmText = "確認", onConfirm, isConfirmDisabled = false, maxWidth = "max-w-sm" }) => {
+            if (!isOpen) return null;
+            return (
+                <ModalPortal>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
+                        <div className={`bg-white dark:bg-dark-card w-full ${maxWidth} rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col max-h-[90vh] overflow-hidden animate-[slideIn_0.2s_ease-out]`}>
+                            <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    {Icon && <Icon size={20} className={iconColor} />}
+                                    {title}
+                                </h3>
+                                <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition"><X size={24}/></button>
+                            </div>
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                {children}
+                            </div>
+                            <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3 shrink-0">
+                                <button onClick={onClose} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
+                                <button onClick={onConfirm} disabled={isConfirmDisabled} className={`px-5 py-2 rounded-lg text-white dark:text-dark-main font-bold shadow-md transition ${isConfirmDisabled ? 'bg-slate-400 cursor-not-allowed' : btnColor}`}>
+                                    {confirmText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </ModalPortal>
+            );
         };
 
         // --- 全域 Toast 系統 ---
@@ -141,7 +169,6 @@
             return (
                 <ToastContext.Provider value={showToast}>
                     {children}
-                    {/* Toast 的 Z-index 調至 9999 確保在全螢幕之上 */}
                     <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
                         {toasts.map(t => (
                             <div key={t.id} className={`flex items-center gap-3 px-6 py-3 rounded-lg bg-white/95 dark:glass-card border-l-4 shadow-lg transform transition-all animate-[slideIn_0.3s_ease-out] ${t.type === 'error' ? 'border-red-500 dark:border-neon-red shadow-md dark:shadow-neon-red text-slate-800 dark:text-red-100' : 'border-cyan-500 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan text-slate-800 dark:text-cyan-100'}`}>
@@ -174,7 +201,7 @@
             
             const [selectedMistake, setSelectedMistake] = useState(null);
             const [isFullScreen, setIsFullScreen] = useState(false); 
-            const [mistakeFontSize, setMistakeFontSize] = useState('medium'); // 🌟 新增：字體大小狀態控制
+            const [mistakeFontSize, setMistakeFontSize] = useState('medium'); 
 
             useEffect(() => {
                 if (!exam) return;
@@ -209,13 +236,7 @@
                         const qText = data.question;
                         
                         if (!mData[qText]) {
-                            mData[qText] = {
-                                question: qText,
-                                correctText: data.correctText,
-                                options: data.options || [],
-                                count: 0,
-                                selections: {} 
-                            };
+                            mData[qText] = { question: qText, correctText: data.correctText, options: data.options || [], count: 0, selections: {} };
                         }
                         
                         mData[qText].count++;
@@ -230,7 +251,6 @@
                 return () => { unsubScores(); unsubMistakes(); };
             }, [exam?.id]);
 
-            // 確保退出組件時關閉全螢幕
             useEffect(() => {
                 return () => setIsFullScreen(false);
             }, []);
@@ -245,10 +265,8 @@
                 </div>
             );
 
-            // 共用內容區塊
             const renderInnerContent = () => (
                 <>
-                    {/* 頂部：全班戰況拉鋸戰 */}
                     <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col gap-3 shrink-0">
                         <div className="flex justify-between items-end">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Target size={18} className="text-cyan-600 dark:text-neon-cyan"/> 戰況拉鋸戰 (全班總答對率)</h3>
@@ -274,7 +292,6 @@
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
-                        {/* 左/中：即時戰力排行榜 */}
                         <div className="xl:col-span-2 bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0"><TrendingUp size={18} className="text-green-500"/> 即時戰力排行榜</h3>
                             <div className={`overflow-y-auto space-y-3 pr-2 ${isFullScreen ? 'max-h-[40vh] md:max-h-[50vh]' : 'max-h-64 md:max-h-80'}`}>
@@ -313,7 +330,6 @@
                             </div>
                         </div>
 
-                        {/* 右側：易錯題警戒區 */}
                         <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col min-h-0">
                             <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (點擊放大)</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4 overflow-y-auto pr-2 pb-2">
@@ -331,7 +347,7 @@
                                             {stat.question}
                                         </div>
                                         <div className="flex justify-between items-center border-t border-slate-100 dark:border-gray-800 pt-3 mt-auto">
-                                            <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-1 rounded flex items-center gap-1 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition font-bold"><BarChart3 size={12}/> 解析</span>
+                                            <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded flex items-center gap-1 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition font-bold"><BarChart3 size={12}/> 解析</span>
                                             <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-md">
                                                 <Users size={14}/> {stat.count} 人答錯
                                             </div>
@@ -346,7 +362,6 @@
 
             return (
                 <>
-                    {/* 🌟 傳送門：全螢幕戰情室，突破 glass-card 框架 */}
                     {isFullScreen ? (
                         <ModalPortal>
                             <div className="fixed inset-0 z-[110] bg-slate-50 dark:bg-dark-main overflow-y-auto p-4 md:p-8 flex flex-col fade-in">
@@ -375,7 +390,6 @@
                         </div>
                     )}
 
-                    {/* 🌟 傳送門：錯題巨屏檢討 (z-index 更高，可覆蓋在全螢幕之上) */}
                     {selectedMistake && (
                         <ModalPortal>
                             <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-6 bg-slate-900/90 dark:bg-black/90 backdrop-blur-md fade-in">
@@ -385,7 +399,6 @@
                                         <h3 className="text-xl md:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3"><Flame className="text-red-500 hidden sm:block" size={32}/> 錯題深度解析</h3>
                                         
                                         <div className="flex items-center gap-3 md:gap-6">
-                                            {/* 字體大小切換控制器 */}
                                             <div className="flex bg-slate-200 dark:bg-gray-700 rounded-lg p-1 shadow-inner">
                                                 <button onClick={() => setMistakeFontSize('small')} className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${mistakeFontSize === 'small' ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600 dark:text-neon-cyan' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}>小</button>
                                                 <button onClick={() => setMistakeFontSize('medium')} className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${mistakeFontSize === 'medium' ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600 dark:text-neon-cyan' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}>中</button>
@@ -397,7 +410,6 @@
                                     
                                     <div className="p-6 md:p-12 overflow-y-auto flex-1 flex flex-col">
                                         
-                                        {/* 🌟 根據字體大小動態調整底部間距 */}
                                         <div className={`text-center shrink-0 transition-all duration-300 ${mistakeFontSize === 'small' ? 'mb-6 md:mb-8' : mistakeFontSize === 'large' ? 'mb-10 md:mb-16' : 'mb-8 md:mb-12'}`}>
                                             <div className={`inline-flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-6 py-2 md:py-3 rounded-full font-bold mb-6 border border-red-100 dark:border-red-900/50 shadow-sm transition-all duration-300 ${mistakeFontSize === 'small' ? 'text-xs md:text-sm' : mistakeFontSize === 'large' ? 'text-lg md:text-xl' : 'text-sm md:text-lg'}`}>
                                                 <Users className={mistakeFontSize === 'small' ? 'w-4 h-4' : mistakeFontSize === 'large' ? 'w-6 h-6' : 'w-5 h-5'}/> 共有 {selectedMistake.count} 名學生在此題陣亡
@@ -407,7 +419,6 @@
                                             </h2>
                                         </div>
                                         
-                                        {/* 🌟 根據字體大小動態調整 Grid 間距 */}
                                         <div className={`grid grid-cols-1 md:grid-cols-2 flex-1 transition-all duration-300 ${mistakeFontSize === 'small' ? 'gap-3 md:gap-5' : mistakeFontSize === 'large' ? 'gap-6 md:gap-8' : 'gap-4 md:gap-6'}`}>
                                             {selectedMistake.options.map((opt, i) => {
                                                 const isCorrect = opt === selectedMistake.correctText;
@@ -420,7 +431,6 @@
                                                     cardStyle = "bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-900/50 text-red-800 dark:text-red-300 border-2";
                                                 }
 
-                                                // 🌟 核心：動態卡片尺寸變數
                                                 const cardPadding = mistakeFontSize === 'small' ? 'p-4 md:p-6' : mistakeFontSize === 'large' ? 'p-8 md:p-10' : 'p-6 md:p-8';
                                                 const cardMinHeight = mistakeFontSize === 'small' ? 'min-h-[80px] md:min-h-[100px]' : mistakeFontSize === 'large' ? 'min-h-[140px] md:min-h-[160px]' : 'min-h-[100px] md:min-h-[120px]';
                                                 const textStyles = mistakeFontSize === 'small' ? 'text-lg md:text-xl' : mistakeFontSize === 'large' ? 'text-3xl md:text-4xl' : 'text-xl md:text-2xl';
@@ -555,32 +565,22 @@
                         </div>
                     </div>
 
-                    {/* 🌟 傳送門：忘記密碼 Modal */}
-                    {isResetModalOpen && (
-                        <ModalPortal>
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
-                                <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                    <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
-                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Key size={20} className="text-cyan-600 dark:text-neon-cyan"/> 重設存取金鑰</h3>
-                                        <button onClick={() => setIsResetModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
-                                    </div>
-                                    <div className="p-6 space-y-4">
-                                        <p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label>
-                                            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="example@email.com" />
-                                        </div>
-                                    </div>
-                                    <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
-                                        <button onClick={() => setIsResetModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
-                                        <button onClick={handlePasswordReset} disabled={resetLoading} className="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400 text-white dark:text-dark-main font-bold shadow-md transition">
-                                            {resetLoading ? '發送中...' : '發送重設信'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </ModalPortal>
-                    )}
+                    {/* 🌟 套用共用模組：忘記密碼 */}
+                    <BaseModal
+                        isOpen={isResetModalOpen}
+                        onClose={() => setIsResetModalOpen(false)}
+                        title="重設存取金鑰"
+                        icon={Key}
+                        confirmText={resetLoading ? '發送中...' : '發送重設信'}
+                        onConfirm={handlePasswordReset}
+                        isConfirmDisabled={resetLoading}
+                    >
+                        <p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label>
+                            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="example@email.com" />
+                        </div>
+                    </BaseModal>
                 </div>
             );
         };
@@ -768,37 +768,37 @@
                             </div>
                         )}
                         
-                        {/* 🌟 傳送門：學生編輯 Modal */}
-                        {editingStudent && (
-                            <ModalPortal>
-                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
-                                    <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                        <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
-                                            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Edit size={20} className="text-blue-600 dark:text-neon-blue"/> 編輯學生資料</h3>
-                                            <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
-                                        </div>
-                                        <div className="p-6 space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
-                                                <input type="text" value={editingStudent.seatNo} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
-                                                <input type="text" value={editingStudent.name} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
-                                            </div>
-                                        </div>
-                                        <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
-                                            <button onClick={() => setEditingStudent(null)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
-                                            <button onClick={saveEditStudent} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400 text-white dark:text-dark-main font-bold shadow-md transition">儲存變更</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </ModalPortal>
-                        )}
+                        {/* 🌟 套用共用模組：編輯學生 */}
+                        <BaseModal
+                            isOpen={!!editingStudent}
+                            onClose={() => setEditingStudent(null)}
+                            title="編輯學生資料"
+                            icon={Edit}
+                            iconColor="text-blue-600 dark:text-neon-blue"
+                            btnColor="bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400"
+                            confirmText="儲存變更"
+                            onConfirm={saveEditStudent}
+                        >
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
+                                <input type="text" value={editingStudent?.seatNo || ''} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
+                                <input type="text" value={editingStudent?.name || ''} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                            </div>
+                        </BaseModal>
                     </div>
                 </div>
             );
         };
+
+        // --- 🌟 頁籤按鈕模組 (減少重複的 CSS 邏輯) ---
+        const ExamTabButton = ({ id, currentTab, setTab, icon: Icon, label }) => (
+            <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
+                <Icon size={18}/> {label}
+            </button>
+        );
 
         // --- 組件：試卷兵工廠 (核心) ---
         const ExamFactory = ({ user }) => {
@@ -1021,16 +1021,11 @@
                                     </div>
                                 </div>
                                 
+                                {/* 🌟 套用共用模組：頁籤切換 */}
                                 <div className="flex gap-2 md:gap-6 border-b border-slate-200 dark:border-gray-800 mb-6 overflow-x-auto shrink-0 pb-1">
-                                    <button onClick={() => setExamTab('warroom')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${examTab === 'warroom' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
-                                        <Activity size={18}/> 📡 即時戰情室
-                                    </button>
-                                    <button onClick={() => setExamTab('settings')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${examTab === 'settings' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
-                                        <Settings size={18}/> 測驗邏輯設定
-                                    </button>
-                                    <button onClick={() => setExamTab('questions')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${examTab === 'questions' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
-                                        <Clipboard size={18}/> 題庫管理與編輯
-                                    </button>
+                                    <ExamTabButton id="warroom" currentTab={examTab} setTab={setExamTab} icon={Activity} label="📡 即時戰情室" />
+                                    <ExamTabButton id="settings" currentTab={examTab} setTab={setExamTab} icon={Settings} label="測驗邏輯設定" />
+                                    <ExamTabButton id="questions" currentTab={examTab} setTab={setExamTab} icon={Clipboard} label="題庫管理與編輯" />
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto pr-2 pb-4 relative min-h-[400px]">
@@ -1129,43 +1124,33 @@
                         )}
                     </div>
 
-                    {/* 🌟 傳送門：編輯/新增題目的 Modal */}
-                    {isModalOpen && (
-                        <ModalPortal>
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
-                                <div className="bg-white dark:bg-dark-card w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                    <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
-                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                            {editIndex !== null ? <><Edit size={20} className="text-cyan-600 dark:text-neon-cyan"/> 編輯題目</> : <><Plus size={20} className="text-cyan-600 dark:text-neon-cyan"/> 單題新增</>}
-                                        </h3>
-                                        <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
-                                    </div>
-                                    <div className="p-6 overflow-y-auto space-y-4 flex-1">
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">題目內容</label>
-                                            <textarea value={modalData.question} onChange={e => setModalData({...modalData, question: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition h-24"></textarea>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">正確解答 <span className="text-xs font-normal text-slate-500">(可輸入數字 1~4 或完整選項文字)</span></label>
-                                            <input type="text" value={modalData.correct} onChange={e => setModalData({...modalData, correct: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                            {modalData.options.map((opt, i) => (
-                                                <div key={i}>
-                                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">選項 {i + 1}</label>
-                                                    <input type="text" value={opt} onChange={e => { const newOpts = [...modalData.options]; newOpts[i] = e.target.value; setModalData({...modalData, options: newOpts}); }} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3 shrink-0">
-                                        <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
-                                        <button onClick={saveSingleQuestion} className="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400 text-white dark:text-dark-main font-bold shadow-md transition">儲存題目</button>
-                                    </div>
+                    {/* 🌟 套用共用模組：編輯/新增題目 */}
+                    <BaseModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        title={editIndex !== null ? "編輯題目" : "單題新增"}
+                        icon={editIndex !== null ? Edit : Plus}
+                        confirmText="儲存題目"
+                        onConfirm={saveSingleQuestion}
+                        maxWidth="max-w-2xl"
+                    >
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">題目內容</label>
+                            <textarea value={modalData.question} onChange={e => setModalData({...modalData, question: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition h-24"></textarea>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">正確解答 <span className="text-xs font-normal text-slate-500">(可輸入數字 1~4 或完整選項文字)</span></label>
+                            <input type="text" value={modalData.correct} onChange={e => setModalData({...modalData, correct: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            {modalData.options.map((opt, i) => (
+                                <div key={i}>
+                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">選項 {i + 1}</label>
+                                    <input type="text" value={opt} onChange={e => { const newOpts = [...modalData.options]; newOpts[i] = e.target.value; setModalData({...modalData, options: newOpts}); }} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
                                 </div>
-                            </div>
-                        </ModalPortal>
-                    )}
+                            ))}
+                        </div>
+                    </BaseModal>
                 </div>
             );
         };
@@ -1223,32 +1208,23 @@
                         </section>
                     </main>
 
-                    {/* 🌟 傳送門：修改密碼 Modal */}
-                    {isPwdModalOpen && (
-                        <ModalPortal>
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm fade-in">
-                                <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                    <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50">
-                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><Key size={20} className="text-cyan-600 dark:text-neon-cyan"/> 變更存取金鑰 (密碼)</h3>
-                                        <button onClick={() => setIsPwdModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white"><X size={24}/></button>
-                                    </div>
-                                    <div className="p-6 space-y-4">
-                                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-xs p-3 rounded-lg mb-4">
-                                            💡 提示：基於安全防護，如果您已經登入一段時間，系統可能會拒絕修改密碼。遇到此情況請先登出並重新登入即可。
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請輸入新密碼 (至少 6 個字元)</label>
-                                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="******" />
-                                        </div>
-                                    </div>
-                                    <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end gap-3">
-                                        <button onClick={() => setIsPwdModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-200 dark:hover:bg-gray-700 transition">取消</button>
-                                        <button onClick={handleUpdatePassword} className="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400 text-white dark:text-dark-main font-bold shadow-md transition">確認變更</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </ModalPortal>
-                    )}
+                    {/* 🌟 套用共用模組：修改密碼 */}
+                    <BaseModal
+                        isOpen={isPwdModalOpen}
+                        onClose={() => setIsPwdModalOpen(false)}
+                        title="變更存取金鑰 (密碼)"
+                        icon={Key}
+                        confirmText="確認變更"
+                        onConfirm={handleUpdatePassword}
+                    >
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-xs p-3 rounded-lg mb-4">
+                            💡 提示：基於安全防護，如果您已經登入一段時間，系統可能會拒絕修改密碼。遇到此情況請先登出並重新登入即可。
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請輸入新密碼 (至少 6 個字元)</label>
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="******" />
+                        </div>
+                    </BaseModal>
                 </div>
             );
         };
