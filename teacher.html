@@ -101,8 +101,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 🌟 引入戰情室所需的圖示
-        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target } from 'lucide-react';
+        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3 } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
@@ -162,6 +161,9 @@
             const [mistakeStats, setMistakeStats] = useState([]);
             const [overallAccuracy, setOverallAccuracy] = useState(0);
             const [isDataLoaded, setIsDataLoaded] = useState(false);
+            
+            // 🌟 大螢幕解析錯題的 Modal 狀態
+            const [selectedMistake, setSelectedMistake] = useState(null);
 
             useEffect(() => {
                 if (!exam) return;
@@ -172,7 +174,6 @@
                     const scoreMap = {};
                     snap.docs.forEach(d => {
                         const data = d.data();
-                        // 取該學生的最佳成績/最新成績
                         if (!scoreMap[data.studentId] || data.score > scoreMap[data.studentId].score) {
                             scoreMap[data.studentId] = data;
                         }
@@ -181,7 +182,6 @@
                     const sortedScores = Object.values(scoreMap).sort((a, b) => b.score - a.score);
                     setStudentScores(sortedScores);
 
-                    // 計算全班整體答對率
                     if (sortedScores.length > 0) {
                         const totalAcc = sortedScores.reduce((sum, s) => sum + (s.accuracy || 0), 0);
                         setOverallAccuracy(Math.round(totalAcc / sortedScores.length));
@@ -191,19 +191,30 @@
                     setIsDataLoaded(true);
                 });
 
-                // 2. 監聽錯題熱點
+                // 2. 監聽錯題熱點 (🌟 升級：抓取完整的選項與統計資料)
                 const qMistakes = query(collection(db, 'mistakes'), where('examId', '==', exam.id));
                 const unsubMistakes = onSnapshot(qMistakes, (snap) => {
-                    const mCount = {};
+                    const mData = {};
                     snap.docs.forEach(d => {
-                        const qText = d.data().question;
-                        mCount[qText] = (mCount[qText] || 0) + 1;
+                        const data = d.data();
+                        const qText = data.question;
+                        
+                        if (!mData[qText]) {
+                            mData[qText] = {
+                                question: qText,
+                                correctText: data.correctText,
+                                options: data.options || [],
+                                count: 0,
+                                selections: {} // 統計各個錯誤選項被選了幾次
+                            };
+                        }
+                        
+                        mData[qText].count++;
+                        const sel = data.selected || '未作答';
+                        mData[qText].selections[sel] = (mData[qText].selections[sel] || 0) + 1;
                     });
                     
-                    const sortedMistakes = Object.entries(mCount)
-                        .map(([question, count]) => ({ question, count }))
-                        .sort((a, b) => b.count - a.count);
-                    
+                    const sortedMistakes = Object.values(mData).sort((a, b) => b.count - a.count);
                     setMistakeStats(sortedMistakes);
                 });
 
@@ -221,7 +232,7 @@
             );
 
             return (
-                <div className="flex flex-col gap-6 fade-in h-full">
+                <div className="flex flex-col gap-6 fade-in h-full relative">
                     {/* 頂部：全班戰況拉鋸戰 */}
                     <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col gap-3">
                         <div className="flex justify-between items-end">
@@ -230,21 +241,12 @@
                         </div>
                         
                         <div className="h-8 w-full rounded-full overflow-hidden flex bg-red-100 dark:bg-red-900/30 relative shadow-inner">
-                            {/* 藍色正確率柱 */}
-                            <div 
-                                className="h-full bg-cyan-500 dark:bg-cyan-600 transition-all duration-1000 ease-out flex items-center justify-end px-3"
-                                style={{ width: `${overallAccuracy}%` }}
-                            >
+                            <div className="h-full bg-cyan-500 dark:bg-cyan-600 transition-all duration-1000 ease-out flex items-center justify-end px-3" style={{ width: `${overallAccuracy}%` }}>
                                 {overallAccuracy > 10 && <span className="text-xs font-bold text-white drop-shadow-md">正確</span>}
                             </div>
-                            {/* 紅色錯誤率柱 */}
-                            <div 
-                                className="h-full bg-red-500 dark:bg-red-600 transition-all duration-1000 ease-out flex items-center justify-start px-3"
-                                style={{ width: `${100 - overallAccuracy}%` }}
-                            >
+                            <div className="h-full bg-red-500 dark:bg-red-600 transition-all duration-1000 ease-out flex items-center justify-start px-3" style={{ width: `${100 - overallAccuracy}%` }}>
                                 {(100 - overallAccuracy) > 10 && <span className="text-xs font-bold text-white drop-shadow-md">錯誤</span>}
                             </div>
-                            {/* 光暈特效 */}
                             <div className="absolute top-0 bottom-0 w-2 bg-white/50 blur-sm mix-blend-overlay transition-all duration-1000" style={{ left: `calc(${overallAccuracy}% - 4px)` }}></div>
                         </div>
                     </div>
@@ -255,7 +257,6 @@
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0"><TrendingUp size={18} className="text-green-500"/> 即時戰力排行榜</h3>
                             <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                                 {studentScores.map((student, idx) => {
-                                    // 獎牌視覺邏輯
                                     let rankColor = "text-slate-400 dark:text-gray-500";
                                     let rankBg = "bg-slate-100 dark:bg-gray-800";
                                     if (idx === 0) { rankColor = "text-amber-500 dark:text-neon-gold"; rankBg = "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 shadow-[0_0_10px_rgba(255,215,0,0.15)]"; }
@@ -292,17 +293,23 @@
 
                         {/* 右側：易錯題警戒區 */}
                         <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col min-h-0">
-                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (錯題熱點)</h3>
+                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (點擊檢討)</h3>
                             <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                                 {mistakeStats.length === 0 ? (
                                     <div className="text-center text-red-400 dark:text-red-500/60 text-sm mt-10">目前無錯題記錄，全班表現優異！</div>
                                 ) : mistakeStats.map((stat, idx) => (
-                                    <div key={idx} className="bg-white dark:bg-dark-main p-3 rounded-lg border border-red-100 dark:border-red-900/50 flex flex-col gap-2 animate-item shadow-sm" style={{animationDelay: `${idx * 0.1}s`}}>
+                                    <div 
+                                        key={idx} 
+                                        onClick={() => setSelectedMistake(stat)}
+                                        className="bg-white dark:bg-dark-main p-3 rounded-lg border border-red-100 dark:border-red-900/50 flex flex-col gap-2 animate-item shadow-sm cursor-pointer hover:border-red-400 hover:shadow-md transition group" 
+                                        style={{animationDelay: `${idx * 0.1}s`}}
+                                        title="點擊放大檢討此題"
+                                    >
                                         <div className="flex justify-between items-start gap-2">
-                                            <div className="text-sm font-bold text-slate-800 dark:text-gray-200 line-clamp-2 leading-snug">{stat.question}</div>
+                                            <div className="text-sm font-bold text-slate-800 dark:text-gray-200 line-clamp-2 leading-snug group-hover:text-red-500 transition">{stat.question}</div>
                                         </div>
                                         <div className="flex justify-between items-center border-t border-slate-100 dark:border-gray-800 pt-2 mt-1">
-                                            <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded">熱點 #{idx + 1}</span>
+                                            <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded flex items-center gap-1 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition"><BarChart3 size={10}/> 解析</span>
                                             <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-md">
                                                 <Users size={12}/> {stat.count} 人答錯
                                             </div>
@@ -312,6 +319,69 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* 🌟 錯題大螢幕檢討 Modal */}
+                    {selectedMistake && (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 md:p-8 bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm fade-in">
+                            <div className="bg-white dark:bg-dark-card w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col max-h-full overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Flame className="text-red-500"/> 錯題深度解析</h3>
+                                    <button onClick={() => setSelectedMistake(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 p-1.5 rounded-full"><X size={24}/></button>
+                                </div>
+                                
+                                <div className="p-6 md:p-10 overflow-y-auto flex-1">
+                                    <div className="text-center mb-10">
+                                        <div className="inline-flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-full font-bold text-sm mb-4 border border-red-100 dark:border-red-900/50">
+                                            <Users size={16}/> 共有 {selectedMistake.count} 名學生在此題陣亡
+                                        </div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white leading-relaxed">
+                                            {selectedMistake.question}
+                                        </h2>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                        {selectedMistake.options.map((opt, i) => {
+                                            const isCorrect = opt === selectedMistake.correctText;
+                                            const pickCount = selectedMistake.selections[opt] || 0;
+                                            
+                                            // 依據是否正確與是否有人選，給予不同的視覺樣式
+                                            let cardStyle = "bg-slate-50 dark:bg-gray-800/50 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300";
+                                            if (isCorrect) {
+                                                cardStyle = "bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-lg shadow-green-500/10 transform scale-[1.02]";
+                                            } else if (pickCount > 0) {
+                                                cardStyle = "bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-900/50 text-red-800 dark:text-red-300";
+                                            }
+
+                                            return (
+                                                <div key={i} className={`relative p-6 rounded-2xl border-2 transition-all flex flex-col justify-center min-h-[100px] text-lg md:text-xl font-bold ${cardStyle}`}>
+                                                    <div className="flex items-start gap-4 pr-20">
+                                                        <span className="opacity-50 mt-0.5">{String.fromCharCode(65 + i)}.</span>
+                                                        <span className="flex-1">{opt}</span>
+                                                    </div>
+                                                    
+                                                    {/* 絕對定位的徽章區 */}
+                                                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center gap-2">
+                                                        {isCorrect && <CheckCircle2 className="text-green-500 drop-shadow-md" size={32} />}
+                                                        {!isCorrect && pickCount > 0 && (
+                                                            <div className="bg-red-500 text-white text-xs md:text-sm px-3 py-1.5 rounded-full flex items-center gap-1 font-black shadow-md animate-pulse">
+                                                                <Users size={16}/> {pickCount} 人
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-end shrink-0">
+                                    <button onClick={() => setSelectedMistake(null)} className="px-8 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold shadow-lg active:scale-95 transition text-lg tracking-widest">
+                                        結束解析
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -556,9 +626,7 @@
                 reader.readAsText(file);
             };
 
-            const downloadStudentSample = () => {
-                downloadCSV("學生匯入範例.csv", "座號,姓名\n1,王小明\n2,陳小美\n3,張大華");
-            };
+            const downloadStudentSample = () => downloadCSV("學生匯入範例.csv", "座號,姓名\n1,王小明\n2,陳小美\n3,張大華");
 
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
@@ -660,8 +728,7 @@
             const [newExamTitle, setNewExamTitle] = useState('');
             const [selectedExam, setSelectedExam] = useState(null);
             
-            // 🌟 預設改為 'settings'
-            const [examTab, setExamTab] = useState('settings'); 
+            const [examTab, setExamTab] = useState('warroom'); 
             const [pasteText, setPasteText] = useState('');
             
             const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -688,8 +755,7 @@
 
             useEffect(() => {
                 setIsEditingTitle(false);
-                // 每次切換試卷時，預設跳到戰情室或邏輯設定
-                setExamTab('settings');
+                setExamTab('warroom');
             }, [selectedExam?.id]);
 
             const createExam = async () => {
@@ -840,7 +906,6 @@
                             </div>
                         ) : (
                             <div className="flex flex-col h-full fade-in">
-                                {/* 頭部資訊與派送鈕 */}
                                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-gray-800">
                                     <div className="flex-1 pr-4">
                                         {isEditingTitle ? (
@@ -880,7 +945,7 @@
                                     </div>
                                 </div>
                                 
-                                {/* 🌟 頁籤控制 (加入戰情室) */}
+                                {/* 頁籤控制 */}
                                 <div className="flex gap-2 md:gap-6 border-b border-slate-200 dark:border-gray-800 mb-6 overflow-x-auto shrink-0 pb-1">
                                     <button onClick={() => setExamTab('warroom')} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${examTab === 'warroom' ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
                                         <Activity size={18}/> 📡 即時戰情室
@@ -893,10 +958,9 @@
                                     </button>
                                 </div>
 
-                                {/* 內容區域 */}
                                 <div className="flex-1 overflow-y-auto pr-2 pb-4">
                                     
-                                    {/* 🌟 頁籤內容 1：即時戰情室 */}
+                                    {/* 頁籤內容 1：即時戰情室 */}
                                     {examTab === 'warroom' && <WarRoom exam={selectedExam} />}
 
                                     {/* 頁籤內容 2：測驗邏輯設定 */}
@@ -1035,28 +1099,19 @@
         // --- 主程式：儀表板框架 ---
         const Dashboard = ({ user, isDarkMode, toggleTheme }) => {
             const [view, setView] = useState('classes');
-            
             const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
             const [newPassword, setNewPassword] = useState('');
-            
             const showToast = useToast();
 
             const handleUpdatePassword = async () => {
-                if (newPassword.length < 6) {
-                    showToast("密碼長度至少需要 6 個字元", "error");
-                    return;
-                }
+                if (newPassword.length < 6) { showToast("密碼長度至少需要 6 個字元", "error"); return; }
                 try {
                     await updatePassword(user, newPassword);
                     showToast("存取金鑰 (密碼) 已成功更新！", "success");
-                    setIsPwdModalOpen(false);
-                    setNewPassword('');
+                    setIsPwdModalOpen(false); setNewPassword('');
                 } catch (error) {
-                    if (error.code === 'auth/requires-recent-login') {
-                        showToast("基於安全考量，請先登出並重新登入後，再進行密碼修改", "error");
-                    } else {
-                        showToast("密碼更新失敗：" + error.message, "error");
-                    }
+                    if (error.code === 'auth/requires-recent-login') showToast("基於安全考量，請先登出並重新登入後，再進行密碼修改", "error");
+                    else showToast("密碼更新失敗：" + error.message, "error");
                 }
             };
 
