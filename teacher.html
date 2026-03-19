@@ -104,7 +104,8 @@
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
         import { createPortal } from 'react-dom';
-        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2 } from 'lucide-react';
+        // 🌟 引入 HelpCircle 圖示
+        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
@@ -1183,7 +1184,12 @@
                             <span className="text-xs border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 px-2 py-0.5 rounded-full ml-2">v2.0 Soft-Light</span>
                         </div>
                         <div className="flex items-center gap-2 md:gap-4">
-                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
+                            {/* 🌟 新增說明指南的連結 */}
+                            <a href="readme.html" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="系統部署與轉移指南">
+                                <HelpCircle size={20} />
+                            </a>
+                            
+                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="佈景主題切換">
                                 {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
                             </button>
                             <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
