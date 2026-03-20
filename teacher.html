@@ -104,7 +104,6 @@
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
         import { createPortal } from 'react-dom';
-        // 🌟 引入 HelpCircle 圖示
         import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
@@ -203,6 +202,52 @@
             const [selectedMistake, setSelectedMistake] = useState(null);
             const [isFullScreen, setIsFullScreen] = useState(false); 
             const [mistakeFontSize, setMistakeFontSize] = useState('medium'); 
+            
+            const showToast = useToast();
+
+            // 🌟 匯出 CSV 的邏輯
+            const handleExportCSV = async () => {
+                try {
+                    // 1. 獲取老師旗下的所有學生，以對應座號
+                    const stQuery = query(collection(db, 'students'), where('teacherId', '==', exam.teacherId));
+                    const stSnap = await getDocs(stQuery);
+                    const seatMap = {};
+                    stSnap.docs.forEach(doc => {
+                        seatMap[doc.id] = doc.data().seatNo || '';
+                    });
+
+                    // 2. studentScores 已經包含了這張考卷每個學生的最高分
+                    // 我們將其複製並依據座號從小到大排序
+                    const sorted = [...studentScores].sort((a, b) => {
+                        const seatA = parseInt(seatMap[a.studentId]) || 0;
+                        const seatB = parseInt(seatMap[b.studentId]) || 0;
+                        return seatA - seatB;
+                    });
+
+                    // 3. 組合 CSV，加入 \uFEFF 以避免 Excel 中文亂碼
+                    let csvContent = "\uFEFF座號,姓名,答對比例(%),分數\n";
+                    sorted.forEach(s => {
+                        const seatNo = seatMap[s.studentId] || '';
+                        const accuracy = s.accuracy !== undefined ? s.accuracy : 0;
+                        csvContent += `${seatNo},${s.studentName},${accuracy}%,${s.score}\n`;
+                    });
+
+                    // 4. 觸發自動下載
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `${exam.title}_結算成績.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    showToast('成績匯出成功！', 'success');
+                } catch (error) {
+                    console.error("Export Error:", error);
+                    showToast('匯出發生錯誤', 'error');
+                }
+            };
 
             useEffect(() => {
                 if (!exam) return;
@@ -273,6 +318,13 @@
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Target size={18} className="text-cyan-600 dark:text-neon-cyan"/> 戰況拉鋸戰 (全班總答對率)</h3>
                             <div className="flex items-center gap-3 md:gap-5">
                                 <span className="text-2xl font-black text-slate-800 dark:text-white font-mono">{overallAccuracy}%</span>
+                                
+                                {/* 🌟 綠色的匯出 CSV 按鈕 */}
+                                <button onClick={handleExportCSV} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-bold transition shadow-sm active:scale-95 text-sm" title="下載班級成績單">
+                                    <Download size={16}/>
+                                    <span className="hidden sm:inline">匯出成績</span>
+                                </button>
+
                                 {!isFullScreen && (
                                     <button onClick={() => setIsFullScreen(true)} className="p-1.5 text-slate-400 hover:text-cyan-600 dark:hover:text-neon-cyan bg-slate-100 hover:bg-cyan-50 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition" title="進入全螢幕投影模式">
                                         <Maximize2 size={20}/>
