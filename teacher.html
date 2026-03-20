@@ -367,7 +367,7 @@
             <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600' : 'text-slate-500 hover:text-slate-700'}`}><Icon size={18}/> {label}</button>
         );
 
-        // 🌟 登入與註冊介面 (已補回)
+        // 🌟 新增： AuthScreen 模組加回
         const AuthScreen = ({ isDarkMode, toggleTheme }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
@@ -502,11 +502,23 @@
                 return () => unsub();
             }, [user.uid]);
 
+            // 🌟 核心修復：當資料庫有變動時，確保您「正在觀看的這份考卷」也會同步更新
+            useEffect(() => {
+                if (selectedExam) {
+                    const latest = exams.find(e => e.id === selectedExam.id);
+                    if (latest && JSON.stringify(latest) !== JSON.stringify(selectedExam)) {
+                        setSelectedExam(latest);
+                    }
+                }
+            }, [exams]);
+
             const createExam = async () => { if (!newExamTitle.trim()) return; await addDoc(collection(db, 'exams'), { title: newExamTitle, teacherId: user.uid, isPublished: false, drawCount: 20, allowMultipleAttempts: true, timeLimit: 30, questions: [], createdAt: Date.now() }); setNewExamTitle(''); showToast("試卷已建立"); };
             const deleteExam = async (id) => { if(!confirm("確定刪除？")) return; await deleteDoc(doc(db, 'exams', id)); if(selectedExam?.id === id) setSelectedExam(null); showToast("已刪除"); };
-            const togglePublish = async (ex) => { await updateDoc(doc(db, 'exams', ex.id), { isPublished: !ex.isPublished }); showToast(ex.isPublished ? "已下架" : "已派送"); };
-            const updateSetting = async (field, val) => { await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: val }); showToast("設定已儲存"); };
-            const saveTitle = async () => { await updateDoc(doc(db, 'exams', selectedExam.id), { title: editTitleValue.trim() }); setIsEditingTitle(false); showToast("名稱已更新"); };
+            
+            // 🌟 樂觀更新 (Optimistic UI)：點擊瞬間立刻切換畫面狀態 (setSelectedExam)，再同步給 Firebase
+            const togglePublish = async (ex) => { const n = !ex.isPublished; setSelectedExam(p=>({...p, isPublished:n})); await updateDoc(doc(db, 'exams', ex.id), { isPublished: n }); showToast(n ? "已派送" : "已下架"); };
+            const updateSetting = async (field, val) => { setSelectedExam(p=>({...p, [field]:val})); await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: val }); showToast("設定已儲存"); };
+            const saveTitle = async () => { const t = editTitleValue.trim(); setSelectedExam(p=>({...p, title:t})); await updateDoc(doc(db, 'exams', selectedExam.id), { title: t }); setIsEditingTitle(false); showToast("名稱已更新"); };
             
             const handleExcel = async (overwrite) => {
                 const lines = pasteText.trim().split('\n'); const newQs = [];
@@ -515,6 +527,7 @@
                     if (cols.length >= 6 && cols[0] !== '題目') newQs.push({ question: cols[0], correct: cols[1], options: [cols[2], cols[3], cols[4], cols[5]] });
                 }
                 const final = overwrite ? newQs : [...(selectedExam.questions || []), ...newQs];
+                setSelectedExam(p=>({...p, questions:final})); // 🌟 樂觀更新題庫
                 await updateDoc(doc(db, 'exams', selectedExam.id), { questions: final }); setPasteText(''); showToast("匯入成功");
             };
             
@@ -522,6 +535,7 @@
             
             const saveSingle = async () => {
                 const qs = [...(selectedExam.questions || [])]; if (editIndex!==null) qs[editIndex] = modalData; else qs.push(modalData);
+                setSelectedExam(p=>({...p, questions:qs})); // 🌟 樂觀更新新增的題目
                 await updateDoc(doc(db, 'exams', selectedExam.id), { questions: qs }); setIsModalOpen(false); showToast("儲存成功");
             };
 
@@ -576,46 +590,46 @@
                                     <ExamTabButton id="questions" currentTab={examTab} setTab={setExamTab} icon={Clipboard} label="題庫管理" />
                                 </div>
                                 <div className="flex-1 overflow-y-auto">
-                                    {examTab === 'warroom' ? (
-                                        <WarRoom exam={selectedExam} />
-                                    ) : examTab === 'settings' ? (
-                                        <div className="grid gap-6 fade-in">
+                                    {examTab === 'settings' ? (
+                                        <div className="grid gap-6">
                                             <div className="bg-slate-50 p-5 rounded-xl">
-                                                <h3 className="font-bold flex items-center gap-2"><Settings size={18}/> 動態測驗邏輯</h3>
-                                                <div className="mt-4 flex flex-col gap-2"><label className="text-sm font-bold flex justify-between"><span>隨機抽題數量</span><span className="text-cyan-700 bg-cyan-100 px-2 rounded-full">{selectedExam.drawCount} 題</span></label><input type="range" min="1" max="100" value={selectedExam.drawCount} onChange={e=>updateSetting('drawCount',parseInt(e.target.value))} className="w-full" /></div>
-                                                <div className="mt-4 border-t pt-4 flex flex-col gap-2"><label className="text-sm font-bold flex justify-between"><span>答題秒數 (Time Limit)</span><span className="text-cyan-700 bg-cyan-100 px-2 rounded-full">{selectedExam.timeLimit||30} 秒</span></label><input type="range" min="5" max="120" step="5" value={selectedExam.timeLimit||30} onChange={e=>updateSetting('timeLimit',parseInt(e.target.value))} className="w-full" /></div>
+                                                <h3>動態邏輯</h3>
+                                                <div className="mt-4"><label>隨機抽題：{selectedExam.drawCount} 題</label><input type="range" min="1" max="100" value={selectedExam.drawCount} onChange={e=>updateSetting('drawCount',parseInt(e.target.value))} className="w-full" /></div>
+                                                <div className="mt-4 border-t pt-4"><label>答題秒數：{selectedExam.timeLimit||30} 秒</label><input type="range" min="5" max="120" step="5" value={selectedExam.timeLimit||30} onChange={e=>updateSetting('timeLimit',parseInt(e.target.value))} className="w-full" /></div>
                                             </div>
                                             <div className="bg-slate-50 p-5 rounded-xl flex justify-between items-center">
                                                 <div><h3 className="font-bold">無限刷題</h3><p className="text-xs text-slate-500">開啟則允許學生重複挑戰</p></div>
-                                                <button onClick={()=>updateSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full flex items-center transition-colors duration-300 shrink-0 ${selectedExam.allowMultipleAttempts?'bg-cyan-500':'bg-slate-300'}`}><div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${selectedExam.allowMultipleAttempts?'translate-x-8':'translate-x-1'}`}></div></button>
+                                                <button onClick={()=>updateSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full flex items-center transition-colors duration-300 shrink-0 ${selectedExam.allowMultipleAttempts?'bg-cyan-500':'bg-slate-300'}`}>
+                                                    <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${selectedExam.allowMultipleAttempts?'translate-x-8':'translate-x-1'}`}></div>
+                                                </button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col gap-6 fade-in">
+                                        <div className="flex flex-col gap-6">
                                             <div className="bg-slate-50 p-5 rounded-xl">
-                                                <h4 className="font-bold flex items-center gap-2"><Clipboard size={18}/> Excel 快速貼上</h4>
-                                                <p className="text-xs text-slate-500 mb-2">依序框選：題目、正確答案、選項1~4</p>
-                                                <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="題目 正確答案 選項..." className="w-full h-20 border rounded-lg p-2"></textarea>
-                                                <div className="flex justify-end gap-2 mt-2"><button onClick={()=>handleExcel(true)} className="px-3 py-1 bg-slate-200 rounded font-bold text-sm">覆寫</button><button onClick={()=>handleExcel(false)} className="px-3 py-1 bg-cyan-600 text-white rounded font-bold text-sm">附加</button></div>
+                                                <h4>Excel 快速貼上</h4>
+                                                <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="題目 正確答案 選項..." className="w-full h-20 border rounded-lg p-2 mt-2"></textarea>
+                                                <div className="flex justify-end gap-2 mt-2"><button onClick={()=>handleExcel(true)} className="px-3 py-1 bg-slate-200 rounded">覆寫</button><button onClick={()=>handleExcel(false)} className="px-3 py-1 bg-cyan-600 text-white rounded">附加</button></div>
                                             </div>
                                             <div>
                                                 <div className="flex justify-between items-center border-t pt-4 mb-4">
-                                                    <h4 className="font-bold flex items-center gap-2"><BookOpen size={18}/> 試卷內容檢視</h4>
-                                                    <button onClick={()=>openModal()} className="text-blue-600 font-bold bg-blue-100 px-3 py-1 rounded-lg text-sm">+ 新增單題</button>
+                                                    <h4>試卷內容</h4>
+                                                    <button onClick={()=>openModal()} className="text-blue-600 font-bold">+ 新增單題</button>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {selectedExam.questions?.map((q,i)=>(
                                                         <div key={i} className="bg-white border p-4 rounded-xl relative group">
                                                             <div className="flex justify-between">
-                                                                <strong className="pr-12 text-lg"><span className="text-cyan-600 mr-2">{i+1}.</span>{q.question}</strong>
-                                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 absolute top-4 right-4 bg-white pl-2">
-                                                                    <button onClick={()=>openModal(i,q)} className="text-slate-400 hover:text-blue-600"><Edit size={16}/></button>
-                                                                    <button onClick={()=>deleteSingleQuestion(i)} className="text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                                                                <strong>{i+1}. {q.question}</strong>
+                                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+                                                                    <button onClick={()=>openModal(i,q)}><Edit size={16}/></button>
+                                                                    {/* 🌟 刪除單題也加上樂觀更新 */}
+                                                                    <button onClick={async()=>{const qs=[...selectedExam.questions]; qs.splice(i,1); setSelectedExam(p=>({...p, questions:qs})); await updateDoc(doc(db,'exams',selectedExam.id),{questions:qs});}}><Trash2 size={16}/></button>
                                                                 </div>
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-slate-600">
+                                                            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
                                                                 {q.options.map((o,oi)=>(
-                                                                    <div key={oi} className={`p-2 rounded-lg border ${String(q.correct)===String(oi+1)||q.correct===o?'bg-cyan-50 font-bold border-cyan-200 text-cyan-800':'bg-slate-50 border-transparent'}`}>{oi+1}. {o}</div>
+                                                                    <div key={oi} className={`p-2 rounded ${String(q.correct)===String(oi+1)||q.correct===o?'bg-cyan-50 font-bold border-cyan-200 border':'bg-slate-50'}`}>{oi+1}. {o}</div>
                                                                 ))}
                                                             </div>
                                                         </div>
@@ -627,12 +641,12 @@
                                 </div>
                             </div>
                         )}
-                        <BaseModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} title={editIndex!==null?"編輯題目":"單題新增"} icon={Clipboard} onConfirm={saveSingleQuestion} maxWidth="max-w-2xl">
-                            <div><label className="block font-bold text-sm mb-2">題目</label><textarea value={modalData.question} onChange={e=>setModalData({...modalData,question:e.target.value})} className="w-full border rounded p-2 h-20"/></div>
-                            <div><label className="block font-bold text-sm mb-2">答案 (1~4 或文字)</label><input value={modalData.correct} onChange={e=>setModalData({...modalData,correct:e.target.value})} className="w-full border rounded p-2"/></div>
+                        <BaseModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} title="編輯題目" icon={Clipboard} onConfirm={saveSingle} maxWidth="max-w-2xl">
+                            <div><label>題目</label><textarea value={modalData.question} onChange={e=>setModalData({...modalData,question:e.target.value})} className="w-full border rounded p-2 h-20"/></div>
+                            <div><label>答案 (1~4 或文字)</label><input value={modalData.correct} onChange={e=>setModalData({...modalData,correct:e.target.value})} className="w-full border rounded p-2"/></div>
                             <div className="grid grid-cols-2 gap-4">
                                 {modalData.options.map((o,i)=>(
-                                    <div key={i}><label className="block font-bold text-xs text-slate-500 mb-1">選項 {i+1}</label><input value={o} onChange={e=>{const n=[...modalData.options];n[i]=e.target.value;setModalData({...modalData,options:n});}} className="w-full border rounded p-2"/></div>
+                                    <div key={i}><label>選項 {i+1}</label><input value={o} onChange={e=>{const n=[...modalData.options];n[i]=e.target.value;setModalData({...modalData,options:n});}} className="w-full border rounded p-2"/></div>
                                 ))}
                             </div>
                         </BaseModal>
