@@ -66,6 +66,11 @@
             -webkit-tap-highlight-color: transparent;
         }
         
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.8); border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(55, 65, 81, 0.8); }
+
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
@@ -113,7 +118,8 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight, Target } from 'lucide-react';
+        // 🌟 新增 Award, Crown 圖示用於排行榜
+        import { UserCircle, Play, Trophy, Clock, XCircle, CheckCircle, Zap, ShieldAlert, Volume2, VolumeX, Sun, Moon, LogOut, Settings, BookOpen, AlertTriangle, ArrowLeft, FolderOpen, ChevronRight, Target, Award, Crown } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
         import { getFirestore, collection, addDoc, doc, onSnapshot, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -491,7 +497,6 @@
                         ) : exams.map(exam => {
                             const hasTaken = scores[exam.id];
                             const isLocked = !exam.allowMultipleAttempts && hasTaken;
-                            // 🌟 顯示每題秒數設定
                             const displayTime = exam.timeLimit || 30;
 
                             return (
@@ -536,7 +541,6 @@
         };
 
         const QuizEngine = ({ student, exam, onComplete, audioEngine }) => {
-            // 🌟 核心：抓取考卷設定的時間，若無則預設為 30 秒
             const examTimeLimit = exam.timeLimit || 30;
 
             const [questions, setQuestions] = useState([]);
@@ -548,7 +552,6 @@
             const [answeredCount, setAnsweredCount] = useState(0);
             const initialQuestionsCountRef = useRef(0);
             
-            // 🌟 倒數計時器初始值改為動態變數
             const [timeLeft, setTimeLeft] = useState(examTimeLimit); 
             const [mistakes, setMistakes] = useState([]); 
             const [recordedMistakes, setRecordedMistakes] = useState([]); 
@@ -572,7 +575,6 @@
                 audioEngine.initAudio(); 
             }, []);
 
-            // 🌟 依賴 currentIndex 來確保每次換題都能抓到最新的 closure state
             useEffect(() => {
                 if (questions.length === 0 || isLocked) return;
                 
@@ -604,7 +606,6 @@
                     if (isCorrect) setCorrectCount(prev => prev + 1);
                 }
 
-                // 🌟 計分邏輯同步改為以「動態設定的總秒數」為分母
                 const timeRatio = Math.max(0, timeLeft / examTimeLimit); 
                 const BASE_SCORE = Math.max(100, Math.floor(timeRatio * 1000));
                 let earnedPoints = 0;
@@ -652,7 +653,7 @@
                     setAnimState('');
                     if (currentIndex < questions.length - 1) {
                         setCurrentIndex(prev => prev + 1);
-                        setTimeLeft(examTimeLimit); // 🌟 換題時重置回動態秒數
+                        setTimeLeft(examTimeLimit);
                     } else {
                         handleRoundComplete();
                     }
@@ -665,7 +666,7 @@
                     setIsReviewMode(true);
                     setQuestions(shuffleArray(mistakes));
                     setCurrentIndex(0);
-                    setTimeLeft(examTimeLimit); // 🌟 進入訂正模式時重置回動態秒數
+                    setTimeLeft(examTimeLimit);
                     setMistakes([]); 
                 } else {
                     finalizeTest();
@@ -711,7 +712,6 @@
             if (questions.length === 0) return <div className="p-10 text-center">正在解析作戰任務...</div>;
 
             const currentQ = questions[currentIndex];
-            // 🌟 剩下 5 秒以內進入紅色警戒狀態
             const isDangerTime = timeLeft <= 5;
             const multiplier = Math.min(1.0 + (combo * 0.1), 2.0).toFixed(1);
             
@@ -719,7 +719,6 @@
 
             return (
                 <div className={`h-full flex flex-col p-4 md:p-6 transition-all duration-300 ${isLocked ? 'force-field-locked' : ''}`}>
-                    {/* 頂部儀表板 */}
                     <div className="flex justify-between items-end mb-6">
                         <div>
                             <div className="text-xs font-bold text-slate-500 mb-1">{isReviewMode ? '🔥 錯題訂正模式 (得分半價)' : '⚔️ 任務執行中'}</div>
@@ -743,18 +742,14 @@
                         </div>
                     </div>
 
-                    {/* 進度條與計時器 */}
                     <div className="relative h-2 bg-slate-200 dark:bg-gray-800 rounded-full mb-8 overflow-hidden">
-                        {/* 🌟 進度條寬度計算同步改為動態分母 */}
                         <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${isDangerTime ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${(timeLeft / examTimeLimit) * 100}%` }}></div>
                     </div>
 
-                    {/* 題目區塊 */}
                     <div className={`glass-card p-6 md:p-8 rounded-3xl mb-6 shadow-lg min-h-[120px] flex items-center justify-center transition ${animState === 'wrong' ? 'animate-shake border-red-500' : ''} ${animState === 'correct' ? 'border-green-500 shadow-green-500/20' : ''}`}>
                         <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white leading-relaxed text-center">{currentQ.question}</h2>
                     </div>
 
-                    {/* 選項區塊 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
                         {currentQ.displayOptions.map((opt, i) => {
                             let btnStyle = "bg-white dark:bg-dark-card border-2 border-slate-200 dark:border-gray-700 text-slate-800 dark:text-gray-200 hover:border-cyan-400 dark:hover:border-cyan-500 hover:shadow-lg active:scale-95";
@@ -778,7 +773,6 @@
                         })}
                     </div>
 
-                    {/* 鎖定提示 */}
                     {isLocked && (
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600/90 text-white px-8 py-4 rounded-2xl font-black tracking-widest text-xl shadow-2xl flex items-center gap-2 animate-[pop_0.2s_ease-out] z-50 backdrop-blur-sm">
                             <ShieldAlert size={28}/> 系統鎖定冷卻中
@@ -788,33 +782,126 @@
             );
         };
 
-        const ReportCard = ({ score, accuracy, mistakes, totalQuestions, onBack }) => {
+        // 🌟 改版的 ReportCard：加入雙欄版面與即時戰力排行榜
+        const ReportCard = ({ student, examId, score, accuracy, mistakes, totalQuestions, onBack }) => {
+            const [leaderboard, setLeaderboard] = useState([]);
+            const [myRank, setMyRank] = useState('-');
+
+            useEffect(() => {
+                // 考完試當下即時連線抓取此張考卷的所有成績，進行排行
+                const q = query(collection(db, 'scores'), where('examId', '==', examId));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    const scoreMap = {};
+                    // 相同學生只保留最高分
+                    snapshot.docs.forEach(d => {
+                        const data = d.data();
+                        if (!scoreMap[data.studentId] || data.score > scoreMap[data.studentId].score) {
+                            scoreMap[data.studentId] = data;
+                        }
+                    });
+                    
+                    // 根據分數由高至低排序
+                    const sortedScores = Object.values(scoreMap).sort((a, b) => b.score - a.score);
+                    setLeaderboard(sortedScores);
+
+                    // 尋找自己的名次
+                    const rank = sortedScores.findIndex(s => s.studentId === student.id) + 1;
+                    setMyRank(rank > 0 ? rank : '-');
+                });
+                return () => unsub();
+            }, [examId, student.id]);
+
             return (
-                <div className="min-h-screen flex flex-col items-center py-10 px-4 fade-in overflow-y-auto">
-                    <div className="glass-card p-8 md:p-10 rounded-3xl w-full max-w-2xl text-center shadow-2xl border-t-8 border-t-cyan-500 mb-8 shrink-0">
-                        <Trophy className="mx-auto text-amber-400 mb-6" size={80} />
-                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-widest">任務完成</h2>
-                        <p className="text-slate-500 dark:text-gray-400 font-bold mb-8">作戰結算報告</p>
-                        
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 w-full">
-                            <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center">
-                                <div className="text-xs font-bold text-slate-400 mb-1">最終獲得積分</div>
-                                <div className="text-3xl sm:text-4xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{score}</div>
+                <div className="h-full flex flex-col items-center py-6 md:py-10 px-4 fade-in overflow-y-auto w-full">
+                    
+                    <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 shrink-0">
+                        {/* 左側：個人成績結算面板 */}
+                        <div className="lg:col-span-1 glass-card p-6 md:p-8 rounded-3xl text-center shadow-xl border-t-8 border-t-cyan-500 flex flex-col justify-between">
+                            <div>
+                                <Trophy className="mx-auto text-amber-400 mb-4" size={60} />
+                                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-widest">作戰結算</h2>
+                                <p className="text-slate-500 dark:text-gray-400 font-bold mb-6 text-sm">Personal Report</p>
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-6 w-full">
+                                    <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 border border-slate-200 dark:border-gray-700 shadow-inner">
+                                        <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">獲得積分</div>
+                                        <div className="text-2xl md:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{score}</div>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 border border-slate-200 dark:border-gray-700 shadow-inner">
+                                        <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">答對率</div>
+                                        <div className="text-2xl md:text-3xl font-black text-green-500 dark:text-green-400 font-mono">{accuracy}%</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 mb-8 text-center relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-2 opacity-10"><Crown size={40} className="text-amber-500"/></div>
+                                    <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 mb-1 tracking-widest">目前全班排名</div>
+                                    <div className="text-4xl font-black text-amber-500 dark:text-neon-gold flex justify-center items-baseline gap-1 relative z-10">
+                                        <span className="text-lg">第</span>{myRank}<span className="text-lg">名</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="bg-slate-50 dark:bg-dark-main rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center">
-                                <div className="text-xs font-bold text-slate-400 mb-1">整體答對率</div>
-                                <div className="text-3xl sm:text-4xl font-black text-green-500 dark:text-green-400 font-mono">{accuracy}%</div>
-                            </div>
+
+                            <button onClick={onBack} className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-black py-4 px-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2">
+                                返回任務大廳
+                            </button>
                         </div>
 
-                        <div className="text-xs text-slate-500 bg-slate-200 dark:bg-gray-800 px-3 py-1 rounded-full inline-block mb-6">紀錄已同步至指揮部</div>
+                        {/* 右側：即時戰力排行榜 */}
+                        <div className="lg:col-span-2 glass-card p-6 md:p-8 rounded-3xl shadow-xl flex flex-col h-[400px] lg:h-auto min-h-[400px]">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0 pb-3 border-b border-slate-200 dark:border-gray-800">
+                                <Crown className="text-amber-500" size={24}/>
+                                即時戰力排行榜
+                            </h3>
+                            
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                                {leaderboard.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400">載入排名中...</div>
+                                ) : (
+                                    leaderboard.map((player, idx) => {
+                                        const isMe = player.studentId === student.id;
+                                        
+                                        // 依據名次賦予不同樣式
+                                        let rankColor = "text-slate-400 dark:text-gray-500";
+                                        let rankBg = "bg-slate-50 dark:bg-gray-800/50";
+                                        if (idx === 0) { rankColor = "text-amber-500 dark:text-neon-gold"; rankBg = "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 shadow-sm"; }
+                                        else if (idx === 1) { rankColor = "text-slate-500 dark:text-slate-300"; rankBg = "bg-slate-100 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600/50 shadow-sm"; }
+                                        else if (idx === 2) { rankColor = "text-orange-500 dark:text-orange-400"; rankBg = "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50 shadow-sm"; }
 
-                        <button onClick={onBack} className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-black py-4 px-4 rounded-xl shadow-lg active:scale-95 transition-all">
-                            返回任務大廳
-                        </button>
+                                        // 如果是自己，加上高亮光圈
+                                        if (isMe) {
+                                            rankBg += " ring-2 ring-cyan-500 dark:ring-neon-cyan relative overflow-hidden bg-cyan-50 dark:bg-cyan-900/20";
+                                        }
+
+                                        return (
+                                            <div key={player.studentId} className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all ${rankBg} ${idx > 2 && !isMe ? 'border-transparent' : ''}`}>
+                                                {isMe && <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 dark:bg-neon-cyan shadow-[0_0_10px_#00E5FF]"></div>}
+                                                
+                                                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-black text-lg shrink-0 ${rankColor}`}>
+                                                    {idx < 3 ? <Award size={24}/> : idx + 1}
+                                                </div>
+                                                
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-bold text-slate-800 dark:text-white truncate flex items-center gap-2">
+                                                        {player.studentName}
+                                                        {isMe && <span className="text-[10px] bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400 px-2 py-0.5 rounded-full font-black tracking-widest border border-cyan-200 dark:border-cyan-800">你</span>}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="text-right shrink-0">
+                                                    <div className={`text-xl font-black font-mono ${isMe ? 'text-cyan-600 dark:text-neon-cyan' : 'text-slate-600 dark:text-gray-300'}`}>{player.score}</div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PTS</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="w-full max-w-2xl space-y-4 shrink-0 pb-10">
+                    {/* 底部：錯題檢討區 */}
+                    <div className="w-full max-w-5xl shrink-0 pb-10">
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 ml-2">
                             <AlertTriangle className="text-cyan-600 dark:text-cyan-400" size={24}/>
                             本回錯題檢討區 <span className="text-sm font-normal text-slate-500">({mistakes.length} 題)</span>
@@ -826,27 +913,29 @@
                                 完美達成！沒有任何錯題！
                             </div>
                         ) : (
-                            mistakes.map((m, idx) => (
-                                <div key={idx} className="glass-card p-5 md:p-6 rounded-2xl border-l-4 border-l-red-500 text-left shadow-md">
-                                    <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg"><span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}</div>
-                                    <div className="flex flex-col gap-3 text-sm">
-                                        <div className="flex items-start gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                            <XCircle size={20} className="shrink-0 mt-0.5" />
-                                            <div>
-                                                <span className="font-bold opacity-70 block text-xs mb-1">你的答案</span>
-                                                <span className="font-medium text-base">{m.selected}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {mistakes.map((m, idx) => (
+                                    <div key={idx} className="glass-card p-5 md:p-6 rounded-2xl border-l-4 border-l-red-500 text-left shadow-md flex flex-col">
+                                        <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg leading-relaxed"><span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}</div>
+                                        <div className="flex flex-col gap-3 text-sm mt-auto">
+                                            <div className="flex items-start gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                                <XCircle size={20} className="shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold opacity-70 block text-[10px] mb-1 tracking-widest uppercase">你的答案</span>
+                                                    <span className="font-medium text-base">{m.selected}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-start gap-3 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
-                                            <CheckCircle size={20} className="shrink-0 mt-0.5" />
-                                            <div>
-                                                <span className="font-bold opacity-70 block text-xs mb-1">正確答案</span>
-                                                <span className="font-bold text-base">{m.correctText}</span>
+                                            <div className="flex items-start gap-3 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
+                                                <CheckCircle size={20} className="shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold opacity-70 block text-[10px] mb-1 tracking-widest uppercase">正確答案</span>
+                                                    <span className="font-bold text-base">{m.correctText}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -903,14 +992,15 @@
 
             return (
                 <ToastProvider>
-                    <div className="min-h-screen flex flex-col relative pb-safe">
+                    <div className="h-screen flex flex-col relative pb-safe">
                         <Header />
                         
                         <main className="flex-1 w-full mx-auto overflow-hidden relative" style={{ maxWidth: (reportData || isViewingMistakes) ? '100%' : '48rem' }}>
                             {!student ? (
                                 <LoginScreen onLogin={setStudent} />
                             ) : reportData ? (
-                                <ReportCard score={reportData.score} accuracy={reportData.accuracy} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
+                                /* 🌟 更新傳入參數，加上 student 與 examId 供排行榜使用 */
+                                <ReportCard student={student} examId={activeExam.id} score={reportData.score} accuracy={reportData.accuracy} mistakes={reportData.mistakes} totalQuestions={reportData.total} onBack={() => {setReportData(null); setActiveExam(null);}} />
                             ) : activeExam ? (
                                 <QuizEngine student={student} exam={activeExam} audioEngine={audioEngine} onComplete={(score, accuracy, mistakesList, total) => setReportData({score, accuracy, mistakes: mistakesList, total})} />
                             ) : isViewingMistakes ? (
