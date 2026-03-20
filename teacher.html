@@ -102,7 +102,8 @@
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
         import { createPortal } from 'react-dom';
-        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
+        // 🌟 加入 UserCircle 與 XCircle 圖示
+        import { Users, UserCircle, XCircle, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
@@ -193,10 +194,12 @@
         const WarRoom = ({ exam }) => {
             const [studentScores, setStudentScores] = useState([]);
             const [mistakeStats, setMistakeStats] = useState([]);
+            const [allMistakes, setAllMistakes] = useState([]); // 🌟 新增：儲存所有原始錯題紀錄
             const [overallAccuracy, setOverallAccuracy] = useState(0);
             const [isDataLoaded, setIsDataLoaded] = useState(false);
             
             const [selectedMistake, setSelectedMistake] = useState(null);
+            const [selectedStudentForReview, setSelectedStudentForReview] = useState(null); // 🌟 新增：目前查看的學生錯題
             const [isFullScreen, setIsFullScreen] = useState(false); 
             const [mistakeFontSize, setMistakeFontSize] = useState('medium'); 
 
@@ -227,9 +230,11 @@
 
                 const qMistakes = query(collection(db, 'mistakes'), where('examId', '==', exam.id));
                 const unsubMistakes = onSnapshot(qMistakes, (snap) => {
+                    const rawMistakes = [];
                     const mData = {};
                     snap.docs.forEach(d => {
                         const data = d.data();
+                        rawMistakes.push(data); // 🌟 存入原始錯題資料供學生檢討使用
                         const qText = data.question;
                         
                         if (!mData[qText]) {
@@ -241,6 +246,7 @@
                         mData[qText].selections[sel] = (mData[qText].selections[sel] || 0) + 1;
                     });
                     
+                    setAllMistakes(rawMistakes); // 🌟 更新 State
                     const sortedMistakes = Object.values(mData).sort((a, b) => b.count - a.count);
                     setMistakeStats(sortedMistakes);
                 });
@@ -251,6 +257,17 @@
             useEffect(() => {
                 return () => setIsFullScreen(false);
             }, []);
+
+            // 🌟 處理點擊學生的邏輯
+            const handleStudentClick = (student) => {
+                const studentMistakes = allMistakes.filter(m => m.studentId === student.studentId);
+                setSelectedStudentForReview({
+                    studentName: student.studentName,
+                    score: student.score,
+                    accuracy: student.accuracy,
+                    mistakes: studentMistakes
+                });
+            };
 
             if (!isDataLoaded) return <div className="p-10 text-center text-slate-500 animate-pulse">建立戰情連線中...</div>;
             
@@ -305,7 +322,11 @@
                                     else if (idx === 2) { rankColor = "text-orange-500 dark:text-orange-400"; rankBg = "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50"; }
 
                                     return (
-                                        <div key={student.studentId} className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item ${rankBg} ${idx > 2 ? 'border-slate-100 dark:border-gray-800' : ''}`} style={{animationDelay: `${idx * 0.05}s`}}>
+                                        <div key={student.studentId} 
+                                             onClick={() => handleStudentClick(student)}
+                                             className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item cursor-pointer hover:scale-[1.02] hover:shadow-md hover:border-cyan-400 dark:hover:border-neon-cyan ${rankBg} ${idx > 2 ? 'border-slate-100 dark:border-gray-800' : ''}`} 
+                                             style={{animationDelay: `${idx * 0.05}s`}}
+                                             title="點擊查看該生作戰分析">
                                             <div className={`flex items-center justify-center w-8 h-8 rounded-full font-black text-lg ${rankColor}`}>
                                                 {idx < 3 ? <Award size={24}/> : idx + 1}
                                             </div>
@@ -475,6 +496,79 @@
                                         <button onClick={() => setSelectedMistake(null)} className={`w-full md:w-auto rounded-xl md:rounded-2xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold shadow-lg active:scale-95 transition tracking-widest ${mistakeFontSize === 'small' ? 'px-8 py-3 text-base' : 'px-12 py-4 text-xl'}`}>
                                             結束解析
                                         </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </ModalPortal>
+                    )}
+
+                    {/* 🌟 學生專屬錯題分析巨屏 */}
+                    {selectedStudentForReview && (
+                        <ModalPortal>
+                            <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-6 bg-slate-900/90 dark:bg-black/90 backdrop-blur-md fade-in">
+                                <div className="bg-white dark:bg-dark-card w-[96vw] md:w-[80vw] max-w-4xl h-[90vh] md:h-[80vh] rounded-3xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                    
+                                    <div className="px-4 md:px-8 py-4 md:py-5 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
+                                        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3">
+                                            <UserCircle className="text-cyan-600 dark:text-neon-cyan" size={28}/> 
+                                            {selectedStudentForReview.studentName} 的戰力分析
+                                        </h3>
+                                        <button onClick={() => setSelectedStudentForReview(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 p-2 rounded-full shadow-sm"><X size={24}/></button>
+                                    </div>
+                                    
+                                    <div className="p-4 md:p-8 overflow-y-auto flex-1 flex flex-col bg-slate-50 dark:bg-dark-main">
+                                        <div className="flex gap-4 mb-6 shrink-0">
+                                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 flex-1 flex flex-col items-center justify-center">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">任務得分</span>
+                                                <span className="text-3xl font-black text-cyan-600 dark:text-neon-cyan font-mono">{selectedStudentForReview.score}</span>
+                                            </div>
+                                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 flex-1 flex flex-col items-center justify-center">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">整體答對率</span>
+                                                <span className="text-3xl font-black text-green-500 font-mono">{selectedStudentForReview.accuracy}%</span>
+                                            </div>
+                                        </div>
+
+                                        <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0">
+                                            <Flame className="text-red-500" size={20}/>
+                                            作答錯誤題數：{selectedStudentForReview.mistakes.length} 題
+                                        </h4>
+
+                                        {selectedStudentForReview.mistakes.length === 0 ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-200 dark:border-green-900/50 p-8 text-center">
+                                                <CheckCircle2 size={60} className="mb-4"/>
+                                                <p className="text-xl">太神啦！這位學生完全沒有答錯任何題目！</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {selectedStudentForReview.mistakes.map((m, idx) => (
+                                                    <div key={idx} className="bg-white dark:bg-dark-card p-4 md:p-6 rounded-2xl border-l-4 border-l-red-500 shadow-sm border border-slate-200 dark:border-gray-700 transition-all hover:shadow-md">
+                                                        <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg leading-snug">
+                                                            <span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row gap-3 text-sm">
+                                                            <div className="flex-1 flex items-start gap-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                                                <XCircle size={20} className="shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <span className="font-bold opacity-70 block text-[10px] mb-1">學生選擇</span>
+                                                                    <span className="font-medium text-base">{m.selected}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex-1 flex items-start gap-2 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
+                                                                <CheckCircle2 size={20} className="shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <span className="font-bold opacity-70 block text-[10px] mb-1">正確解答</span>
+                                                                    <span className="font-bold text-base">{m.correctText}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="px-6 py-4 bg-white dark:bg-dark-card border-t border-slate-200 dark:border-gray-800 flex justify-end shrink-0">
+                                        <button onClick={() => setSelectedStudentForReview(null)} className="px-8 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold shadow-md transition">關閉分析</button>
                                     </div>
                                 </div>
                             </div>
