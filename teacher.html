@@ -73,6 +73,7 @@
             transition: background 0.3s, border 0.3s;
         }
 
+        /* 戰情室專用動畫 */
         @keyframes slideInUp {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -80,6 +81,7 @@
         .animate-item { animation: slideInUp 0.4s ease-out forwards; }
     </style>
 
+    <!-- Import Maps 支援 Portal 功能 -->
     <script type="importmap">
         {
             "imports": {
@@ -102,8 +104,8 @@
         import React, { useState, useEffect, createContext, useContext } from 'react';
         import { createRoot } from 'react-dom/client';
         import { createPortal } from 'react-dom';
-        // 🌟 加入 UserCircle 與 XCircle 圖示
-        import { Users, UserCircle, XCircle, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
+        // 🌟 引入 HelpCircle 圖示
+        import { Users, BookOpen, LogOut, Upload, Download, Trash2, Plus, Zap, Settings, ShieldAlert, CheckCircle2, Sun, Moon, Edit, Clipboard, X, Key, Activity, Flame, Award, TrendingUp, Target, BarChart3, Maximize2, HelpCircle } from 'lucide-react';
         
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
@@ -126,7 +128,7 @@
         const ModalPortal = ({ children }) => createPortal(children, document.body);
 
         // ==========================================
-        // 🌟 共用組件：BaseModal
+        // 🌟 共用組件：BaseModal (彈出視窗底層架構)
         // ==========================================
         const BaseModal = ({ isOpen, onClose, title, icon: Icon, iconColor = "text-cyan-600 dark:text-neon-cyan", btnColor = "bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan dark:hover:bg-cyan-400", children, confirmText = "確認", onConfirm, isConfirmDisabled = false, maxWidth = "max-w-sm" }) => {
             if (!isOpen) return null;
@@ -156,6 +158,7 @@
             );
         };
 
+        // --- 全域 Toast 系統 ---
         const ToastContext = createContext();
         const ToastProvider = ({ children }) => {
             const [toasts, setToasts] = useState([]);
@@ -194,12 +197,10 @@
         const WarRoom = ({ exam }) => {
             const [studentScores, setStudentScores] = useState([]);
             const [mistakeStats, setMistakeStats] = useState([]);
-            const [allMistakes, setAllMistakes] = useState([]); // 🌟 新增：儲存所有原始錯題紀錄
             const [overallAccuracy, setOverallAccuracy] = useState(0);
             const [isDataLoaded, setIsDataLoaded] = useState(false);
             
             const [selectedMistake, setSelectedMistake] = useState(null);
-            const [selectedStudentForReview, setSelectedStudentForReview] = useState(null); // 🌟 新增：目前查看的學生錯題
             const [isFullScreen, setIsFullScreen] = useState(false); 
             const [mistakeFontSize, setMistakeFontSize] = useState('medium'); 
 
@@ -230,11 +231,9 @@
 
                 const qMistakes = query(collection(db, 'mistakes'), where('examId', '==', exam.id));
                 const unsubMistakes = onSnapshot(qMistakes, (snap) => {
-                    const rawMistakes = [];
                     const mData = {};
                     snap.docs.forEach(d => {
                         const data = d.data();
-                        rawMistakes.push(data); // 🌟 存入原始錯題資料供學生檢討使用
                         const qText = data.question;
                         
                         if (!mData[qText]) {
@@ -246,7 +245,6 @@
                         mData[qText].selections[sel] = (mData[qText].selections[sel] || 0) + 1;
                     });
                     
-                    setAllMistakes(rawMistakes); // 🌟 更新 State
                     const sortedMistakes = Object.values(mData).sort((a, b) => b.count - a.count);
                     setMistakeStats(sortedMistakes);
                 });
@@ -258,17 +256,6 @@
                 return () => setIsFullScreen(false);
             }, []);
 
-            // 🌟 處理點擊學生的邏輯
-            const handleStudentClick = (student) => {
-                const studentMistakes = allMistakes.filter(m => m.studentId === student.studentId);
-                setSelectedStudentForReview({
-                    studentName: student.studentName,
-                    score: student.score,
-                    accuracy: student.accuracy,
-                    mistakes: studentMistakes
-                });
-            };
-
             if (!isDataLoaded) return <div className="p-10 text-center text-slate-500 animate-pulse">建立戰情連線中...</div>;
             
             if (studentScores.length === 0) return (
@@ -279,10 +266,8 @@
                 </div>
             );
 
-            // 🌟 重新建構的戰情室內容區塊 (垂直佈局)
             const renderInnerContent = () => (
                 <>
-                    {/* 頂部：全班戰況拉鋸戰 */}
                     <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col gap-3 shrink-0">
                         <div className="flex justify-between items-end">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Target size={18} className="text-cyan-600 dark:text-neon-cyan"/> 戰況拉鋸戰 (全班總答對率)</h3>
@@ -307,13 +292,10 @@
                         </div>
                     </div>
 
-                    {/* 🌟 版面變更：改為垂直堆疊 (flex-col) 而不是左右並排的 Grid */}
-                    <div className="flex flex-col gap-6 flex-1 min-h-0">
-                        
-                        {/* 中段：即時戰力排行榜 (全寬) */}
-                        <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col shrink-0">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
+                        <div className="xl:col-span-2 bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0"><TrendingUp size={18} className="text-green-500"/> 即時戰力排行榜</h3>
-                            <div className={`overflow-y-auto space-y-3 pr-2 ${isFullScreen ? 'max-h-[35vh]' : 'max-h-64'}`}>
+                            <div className={`overflow-y-auto space-y-3 pr-2 ${isFullScreen ? 'max-h-[40vh] md:max-h-[50vh]' : 'max-h-64 md:max-h-80'}`}>
                                 {studentScores.map((student, idx) => {
                                     let rankColor = "text-slate-400 dark:text-gray-500";
                                     let rankBg = "bg-slate-100 dark:bg-gray-800";
@@ -322,11 +304,7 @@
                                     else if (idx === 2) { rankColor = "text-orange-500 dark:text-orange-400"; rankBg = "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50"; }
 
                                     return (
-                                        <div key={student.studentId} 
-                                             onClick={() => handleStudentClick(student)}
-                                             className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item cursor-pointer hover:scale-[1.02] hover:shadow-md hover:border-cyan-400 dark:hover:border-neon-cyan ${rankBg} ${idx > 2 ? 'border-slate-100 dark:border-gray-800' : ''}`} 
-                                             style={{animationDelay: `${idx * 0.05}s`}}
-                                             title="點擊查看該生作戰分析">
+                                        <div key={student.studentId} className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item ${rankBg} ${idx > 2 ? 'border-slate-100 dark:border-gray-800' : ''}`} style={{animationDelay: `${idx * 0.05}s`}}>
                                             <div className={`flex items-center justify-center w-8 h-8 rounded-full font-black text-lg ${rankColor}`}>
                                                 {idx < 3 ? <Award size={24}/> : idx + 1}
                                             </div>
@@ -353,10 +331,9 @@
                             </div>
                         </div>
 
-                        {/* 底部：易錯題警戒區 (全寬，網格排列充分利用空間) */}
-                        <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col flex-1 min-h-0">
-                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (點擊放大檢討)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 pb-2">
+                        <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col min-h-0">
+                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (點擊放大)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4 overflow-y-auto pr-2 pb-2">
                                 {mistakeStats.length === 0 ? (
                                     <div className="col-span-full text-center text-red-400 dark:text-red-500/60 text-sm mt-6 mb-6">目前無錯題記錄，全班表現優異！</div>
                                 ) : mistakeStats.map((stat, idx) => (
@@ -367,12 +344,8 @@
                                         style={{animationDelay: `${idx * 0.1}s`}}
                                         title="點擊放大檢討此題"
                                     >
-                                        <div className="text-sm md:text-base font-bold text-slate-800 dark:text-gray-200 line-clamp-3 leading-snug group-hover:text-red-500 transition mb-2">
+                                        <div className="text-sm md:text-base font-bold text-slate-800 dark:text-gray-200 line-clamp-3 leading-snug group-hover:text-red-500 transition mb-3">
                                             {stat.question}
-                                        </div>
-                                        {/* 🌟 在外層小卡片直接顯示正確答案 */}
-                                        <div className="text-xs text-green-700 dark:text-green-400 font-bold mb-3 flex items-center gap-1 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded w-fit border border-green-200 dark:border-green-800">
-                                            <CheckCircle2 size={14}/> {stat.correctText}
                                         </div>
                                         <div className="flex justify-between items-center border-t border-slate-100 dark:border-gray-800 pt-3 mt-auto">
                                             <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded flex items-center gap-1 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition font-bold"><BarChart3 size={12}/> 解析</span>
@@ -467,12 +440,6 @@
 
                                                 return (
                                                     <div key={i} className={`relative rounded-2xl md:rounded-3xl transition-all duration-300 flex flex-col justify-center font-bold ${cardPadding} ${cardMinHeight} ${textStyles} ${cardStyle}`}>
-                                                        {/* 🌟 巨屏模式：明確的「正確解答」浮動標籤 */}
-                                                        {isCorrect && (
-                                                            <div className="absolute -top-3 md:-top-4 left-6 md:left-8 bg-green-500 text-white px-3 md:px-4 py-1 rounded-full text-xs md:text-sm shadow-md flex items-center gap-1 z-20 animate-[slideInUp_0.3s_ease-out]">
-                                                                <CheckCircle2 size={16} /> 正確解答
-                                                            </div>
-                                                        )}
                                                         <div className="flex items-start gap-4 md:gap-6 pr-16 md:pr-28">
                                                             <span className="opacity-50 mt-1 shrink-0">{String.fromCharCode(65 + i)}.</span>
                                                             <span className="flex-1 leading-snug">{opt}</span>
@@ -501,99 +468,21 @@
                             </div>
                         </ModalPortal>
                     )}
-
-                    {/* 🌟 學生專屬錯題分析巨屏 */}
-                    {selectedStudentForReview && (
-                        <ModalPortal>
-                            <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-6 bg-slate-900/90 dark:bg-black/90 backdrop-blur-md fade-in">
-                                <div className="bg-white dark:bg-dark-card w-[96vw] md:w-[80vw] max-w-4xl h-[90vh] md:h-[80vh] rounded-3xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                    
-                                    <div className="px-4 md:px-8 py-4 md:py-5 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
-                                        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3">
-                                            <UserCircle className="text-cyan-600 dark:text-neon-cyan" size={28}/> 
-                                            {selectedStudentForReview.studentName} 的戰力分析
-                                        </h3>
-                                        <button onClick={() => setSelectedStudentForReview(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 p-2 rounded-full shadow-sm"><X size={24}/></button>
-                                    </div>
-                                    
-                                    <div className="p-4 md:p-8 overflow-y-auto flex-1 flex flex-col bg-slate-50 dark:bg-dark-main">
-                                        <div className="flex gap-4 mb-6 shrink-0">
-                                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 flex-1 flex flex-col items-center justify-center">
-                                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">任務得分</span>
-                                                <span className="text-3xl font-black text-cyan-600 dark:text-neon-cyan font-mono">{selectedStudentForReview.score}</span>
-                                            </div>
-                                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 flex-1 flex flex-col items-center justify-center">
-                                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">整體答對率</span>
-                                                <span className="text-3xl font-black text-green-500 font-mono">{selectedStudentForReview.accuracy}%</span>
-                                            </div>
-                                        </div>
-
-                                        <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0">
-                                            <Flame className="text-red-500" size={20}/>
-                                            作答錯誤題數：{selectedStudentForReview.mistakes.length} 題
-                                        </h4>
-
-                                        {selectedStudentForReview.mistakes.length === 0 ? (
-                                            <div className="flex-1 flex flex-col items-center justify-center text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-200 dark:border-green-900/50 p-8 text-center">
-                                                <CheckCircle2 size={60} className="mb-4"/>
-                                                <p className="text-xl">太神啦！這位學生完全沒有答錯任何題目！</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-4">
-                                                {selectedStudentForReview.mistakes.map((m, idx) => (
-                                                    <div key={idx} className="bg-white dark:bg-dark-card p-4 md:p-6 rounded-2xl border-l-4 border-l-red-500 shadow-sm border border-slate-200 dark:border-gray-700 transition-all hover:shadow-md">
-                                                        <div className="font-bold text-slate-800 dark:text-white mb-4 text-lg leading-snug">
-                                                            <span className="text-red-500 mr-2">{idx + 1}.</span>{m.question}
-                                                        </div>
-                                                        <div className="flex flex-col sm:flex-row gap-3 text-sm">
-                                                            <div className="flex-1 flex items-start gap-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                                                <XCircle size={20} className="shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <span className="font-bold opacity-70 block text-[10px] mb-1">學生選擇</span>
-                                                                    <span className="font-medium text-base">{m.selected}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-1 flex items-start gap-2 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-900/50">
-                                                                <CheckCircle2 size={20} className="shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <span className="font-bold opacity-70 block text-[10px] mb-1">正確解答</span>
-                                                                    <span className="font-bold text-base">{m.correctText}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="px-6 py-4 bg-white dark:bg-dark-card border-t border-slate-200 dark:border-gray-800 flex justify-end shrink-0">
-                                        <button onClick={() => setSelectedStudentForReview(null)} className="px-8 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold shadow-md transition">關閉分析</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </ModalPortal>
-                    )}
                 </>
             );
         };
 
-        // --- 🌟 頁籤按鈕模組 ---
-        const ExamTabButton = ({ id, currentTab, setTab, icon: Icon, label }) => (
-            <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
-                <Icon size={18}/> {label}
-            </button>
-        );
-
-        // 🌟 登入與註冊介面 (已補回)
+        // --- 組件：登入與註冊介面 ---
         const AuthScreen = ({ isDarkMode, toggleTheme }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [loading, setLoading] = useState(false);
+            
             const [isResetModalOpen, setIsResetModalOpen] = useState(false);
             const [resetEmail, setResetEmail] = useState('');
             const [resetLoading, setResetLoading] = useState(false);
+
             const showToast = useToast();
 
             const handleAuth = async (e) => {
@@ -614,13 +503,19 @@
             };
 
             const handlePasswordReset = async () => {
-                if (!resetEmail.trim()) { showToast("請輸入您註冊的 Email", "error"); return; }
+                if (!resetEmail.trim()) {
+                    showToast("請輸入您註冊的 Email", "error");
+                    return;
+                }
                 setResetLoading(true);
                 try {
                     await sendPasswordResetEmail(auth, resetEmail);
-                    showToast("密碼重設信件已發送", "success");
-                    setIsResetModalOpen(false); setResetEmail('');
-                } catch (error) { showToast("發送失敗: " + error.message, "error"); }
+                    showToast("密碼重設信件已發送，請至信箱收信並重設密碼", "success");
+                    setIsResetModalOpen(false);
+                    setResetEmail('');
+                } catch (error) {
+                    showToast("發送失敗: " + error.message, "error");
+                }
                 setResetLoading(false);
             };
 
@@ -629,84 +524,191 @@
                     <button onClick={toggleTheme} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
                         {isDarkMode ? <Sun size={24} className="hover:text-yellow-400" /> : <Moon size={24} className="hover:text-indigo-600" />}
                     </button>
+                    
                     <div className="glass-card p-10 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 dark:via-neon-cyan to-transparent opacity-50"></div>
+                        
                         <div className="text-center mb-10">
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-dark-card border border-cyan-500/30 dark:border-neon-cyan/30 shadow-md dark:shadow-neon-cyan mb-4"><Zap className="text-cyan-600 dark:text-neon-cyan" size={40} /></div>
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-dark-card border border-cyan-500/30 dark:border-neon-cyan/30 shadow-md dark:shadow-neon-cyan mb-4">
+                                <Zap className="text-cyan-600 dark:text-neon-cyan" size={40} />
+                            </div>
                             <h1 className="text-3xl font-black tracking-widest text-slate-900 dark:text-white">智慧測驗系統</h1>
                             <p className="text-cyan-700 dark:text-cyan-500/80 mt-2 font-mono text-sm uppercase tracking-widest">Teacher Terminal</p>
                         </div>
+
                         <form onSubmit={handleAuth} className="space-y-6">
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">管理員信箱 (Email)</label>
-                                <input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} />
+                                <input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label>
-                                <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
+                                <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan focus:ring-1 focus:ring-cyan-500 dark:focus:ring-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
                             </div>
-                            {isLogin && <div className="text-right mt-1"><button type="button" onClick={() => { setResetEmail(email); setIsResetModalOpen(true); }} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline">忘記存取金鑰？</button></div>}
-                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-300 flex justify-center items-center mt-2">{loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}</button>
+                            
+                            {isLogin && (
+                                <div className="text-right mt-1">
+                                    <button type="button" onClick={() => { setResetEmail(email); setIsResetModalOpen(true); }} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline">
+                                        忘記存取金鑰？
+                                    </button>
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover transition-all duration-300 flex justify-center items-center mt-2">
+                                {loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}
+                            </button>
                         </form>
-                        <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition">{isLogin ? '尚未擁有權限？點此註冊' : '已有管理權限？點此登入'}</button></div>
+                        
+                        <div className="mt-6 text-center">
+                            <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition">
+                                {isLogin ? '尚未擁有權限？點此註冊' : '已有管理權限？點此登入'}
+                            </button>
+                        </div>
                     </div>
-                    
-                    <BaseModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} title="重設存取金鑰" icon={Key} confirmText={resetLoading ? '發送中...' : '發送重設信'} onConfirm={handlePasswordReset} isConfirmDisabled={resetLoading}>
+
+                    {/* 🌟 套用共用模組：忘記密碼 */}
+                    <BaseModal
+                        isOpen={isResetModalOpen}
+                        onClose={() => setIsResetModalOpen(false)}
+                        title="重設存取金鑰"
+                        icon={Key}
+                        confirmText={resetLoading ? '發送中...' : '發送重設信'}
+                        onConfirm={handlePasswordReset}
+                        isConfirmDisabled={resetLoading}
+                    >
                         <p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label>
-                            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 transition" placeholder="example@email.com" />
+                            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="example@email.com" />
                         </div>
                     </BaseModal>
                 </div>
             );
         };
 
+        // --- 組件：班級與學生管理 ---
         const ClassManager = ({ user }) => {
             const [classes, setClasses] = useState([]);
             const [students, setStudents] = useState([]);
             const [newClassName, setNewClassName] = useState('');
             const [selectedClass, setSelectedClass] = useState(null);
             const [editingStudent, setEditingStudent] = useState(null);
+            
             const showToast = useToast();
 
             useEffect(() => {
                 const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
-                const unsub = onSnapshot(q, snap => setClasses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt)));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt));
+                });
                 return () => unsub();
             }, [user.uid]);
 
             useEffect(() => {
                 if (!selectedClass) { setStudents([]); return; }
                 const q = query(collection(db, 'students'), where('classId', '==', selectedClass.id));
-                const unsub = onSnapshot(q, snap => {
-                    let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setStudents(list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo)));
+                const unsub = onSnapshot(q, (snapshot) => {
+                    let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    list.sort((a,b) => parseInt(a.seatNo) - parseInt(b.seatNo));
+                    setStudents(list);
                 });
                 return () => unsub();
             }, [selectedClass]);
 
-            const addClass = async () => { if (!newClassName.trim()) return; await addDoc(collection(db, 'classes'), { name: newClassName, teacherId: user.uid, createdAt: Date.now() }); setNewClassName(''); showToast("班級建立成功"); };
-            const deleteClass = async (id) => { if (!confirm("警告：此操作將刪除所有相關學生與成績紀錄，確定嗎？")) return; await deleteDoc(doc(db, 'classes', id)); if(selectedClass?.id === id) setSelectedClass(null); showToast("已徹底刪除"); };
-            const deleteStudent = async (id) => { await deleteDoc(doc(db, 'students', id)); showToast("學生已刪除"); };
-            const saveEditStudent = async () => { await updateDoc(doc(db, 'students', editingStudent.id), { seatNo: editingStudent.seatNo, name: editingStudent.name }); setEditingStudent(null); showToast("資料已更新"); };
-            
-            const handleCSV = e => {
-                const file = e.target.files[0]; if (!file) return;
+            const addClass = async () => {
+                if (!newClassName.trim()) return;
+                try {
+                    await addDoc(collection(db, 'classes'), { name: newClassName, teacherId: user.uid, createdAt: Date.now() });
+                    setNewClassName('');
+                    showToast("班級建立成功");
+                } catch (e) { showToast("建立失敗: " + e.message, "error"); }
+            };
+
+            const deleteClass = async (classId) => {
+                if (!confirm("警告：確定要刪除此班級嗎？\n⚠️ 此操作將一併「刪除該班級的所有學生」，以及他們所有的「考試與錯題紀錄」，且無法復原！")) return;
+                
+                try {
+                    const studentsQuery = query(collection(db, 'students'), where('classId', '==', classId));
+                    const studentDocs = await getDocs(studentsQuery);
+                    const scoresQuery = query(collection(db, 'scores'), where('classId', '==', classId));
+                    const scoreDocs = await getDocs(scoresQuery);
+                    const mistakesQuery = query(collection(db, 'mistakes'), where('classId', '==', classId));
+                    const mistakeDocs = await getDocs(mistakesQuery);
+
+                    const deletePromises = [];
+                    studentDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    scoreDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    mistakeDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    deletePromises.push(deleteDoc(doc(db, 'classes', classId)));
+
+                    await Promise.all(deletePromises);
+
+                    if(selectedClass?.id === classId) setSelectedClass(null);
+                    showToast("班級及其所有關聯資料已徹底刪除", "success");
+                } catch (error) {
+                    showToast("刪除班級失敗：" + error.message, "error");
+                }
+            };
+
+            const deleteStudent = async (studentId) => {
+                if (!confirm("確定要刪除這位學生嗎？相關考試紀錄將會一併刪除。")) return;
+                try {
+                    const scoresQuery = query(collection(db, 'scores'), where('studentId', '==', studentId));
+                    const scoreDocs = await getDocs(scoresQuery);
+                    const mistakesQuery = query(collection(db, 'mistakes'), where('studentId', '==', studentId));
+                    const mistakeDocs = await getDocs(mistakesQuery);
+                    
+                    const deletePromises = [deleteDoc(doc(db, 'students', studentId))];
+                    scoreDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    mistakeDocs.docs.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                    
+                    await Promise.all(deletePromises);
+                    showToast("學生資料與相關紀錄已徹底刪除");
+                } catch (error) {
+                    showToast("刪除失敗：" + error.message, "error");
+                }
+            };
+
+            const saveEditStudent = async () => {
+                if (!editingStudent.name.trim() || !editingStudent.seatNo.trim()) {
+                    showToast("座號與姓名不可為空", "error");
+                    return;
+                }
+                try {
+                    await updateDoc(doc(db, 'students', editingStudent.id), { seatNo: editingStudent.seatNo, name: editingStudent.name });
+                    setEditingStudent(null);
+                    showToast("學生資料已更新", "success");
+                } catch (error) {
+                    showToast("更新失敗: " + error.message, "error");
+                }
+            };
+
+            const handleStudentCSVUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
                 const reader = new FileReader();
-                reader.onload = async event => {
-                    const lines = event.target.result.split('\n').filter(l => l.trim() !== '');
-                    for (let i = 1; i < lines.length; i++) {
+                reader.onload = async (event) => {
+                    const text = event.target.result;
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    let successCount = 0;
+                    
+                    for (let i = 1; i < lines.length; i++) { 
                         const [seatNo, name] = lines[i].split(',').map(s => s.trim());
-                        if (seatNo && name) await addDoc(collection(db, 'students'), { classId: selectedClass.id, teacherId: user.uid, seatNo, name, createdAt: Date.now() });
+                        if (seatNo && name) {
+                            await addDoc(collection(db, 'students'), { classId: selectedClass.id, teacherId: user.uid, seatNo, name, createdAt: Date.now() });
+                            successCount++;
+                        }
                     }
-                    showToast("匯入完成"); e.target.value = '';
+                    showToast(`批次匯入完成，共新增 ${successCount} 筆資料`, "success");
+                    e.target.value = ''; 
                 };
                 reader.readAsText(file);
             };
 
+            const downloadStudentSample = () => downloadCSV("學生匯入範例.csv", "座號,姓名\n1,王小明\n2,陳小美\n3,張大華");
+
             return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full">
                     <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-blue-500 dark:border-t-neon-blue">
                         <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><Users className="text-blue-600 dark:text-neon-blue" /> 班級中樞</h2>
                         <div className="flex gap-2 mb-6">
@@ -767,7 +769,17 @@
                             </div>
                         )}
                         
-                        <BaseModal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} title="編輯學生" icon={Edit} iconColor="text-blue-600 dark:text-neon-blue" confirmText="儲存變更" onConfirm={saveEditStudent}>
+                        {/* 🌟 套用共用模組：編輯學生 */}
+                        <BaseModal
+                            isOpen={!!editingStudent}
+                            onClose={() => setEditingStudent(null)}
+                            title="編輯學生資料"
+                            icon={Edit}
+                            iconColor="text-blue-600 dark:text-neon-blue"
+                            btnColor="bg-blue-600 hover:bg-blue-700 dark:bg-neon-blue dark:hover:bg-blue-400"
+                            confirmText="儲存變更"
+                            onConfirm={saveEditStudent}
+                        >
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
                                 <input type="text" value={editingStudent?.seatNo || ''} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
@@ -782,68 +794,164 @@
             );
         };
 
+        // --- 🌟 頁籤按鈕模組 (減少重複的 CSS 邏輯) ---
+        const ExamTabButton = ({ id, currentTab, setTab, icon: Icon, label }) => (
+            <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
+                <Icon size={18}/> {label}
+            </button>
+        );
+
+        // --- 組件：試卷兵工廠 (核心) ---
         const ExamFactory = ({ user }) => {
             const [exams, setExams] = useState([]);
             const [newExamTitle, setNewExamTitle] = useState('');
             const [selectedExam, setSelectedExam] = useState(null);
-            const [examTab, setExamTab] = useState('warroom');
+            
+            const [examTab, setExamTab] = useState('warroom'); 
             const [pasteText, setPasteText] = useState('');
+            
             const [isEditingTitle, setIsEditingTitle] = useState(false);
             const [editTitleValue, setEditTitleValue] = useState('');
+            
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [editIndex, setEditIndex] = useState(null);
             const [modalData, setModalData] = useState({ question: '', correct: '', options: ['', '', '', ''] });
+            
             const showToast = useToast();
 
             useEffect(() => {
                 const q = query(collection(db, 'exams'), where('teacherId', '==', user.uid));
-                const unsub = onSnapshot(q, snap => setExams(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt)));
-                return () => unsub();
-            }, [user.uid]);
-
-            useEffect(() => {
-                if (selectedExam) {
-                    const latest = exams.find(e => e.id === selectedExam.id);
-                    if (latest && JSON.stringify(latest) !== JSON.stringify(selectedExam)) {
-                        setSelectedExam(latest);
+                const unsub = onSnapshot(q, (snapshot) => {
+                    const loadedExams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b)=>b.createdAt - a.createdAt);
+                    setExams(loadedExams);
+                    if (selectedExam) {
+                        const updatedSelected = loadedExams.find(e => e.id === selectedExam.id);
+                        if (updatedSelected) setSelectedExam(updatedSelected);
                     }
-                }
-            }, [exams]);
+                });
+                return () => unsub();
+            }, [user.uid, selectedExam?.id]);
 
             useEffect(() => {
                 setIsEditingTitle(false);
                 setExamTab('warroom');
             }, [selectedExam?.id]);
 
-            const createExam = async () => { if (!newExamTitle.trim()) return; await addDoc(collection(db, 'exams'), { title: newExamTitle, teacherId: user.uid, isPublished: false, drawCount: 20, allowMultipleAttempts: true, timeLimit: 30, questions: [], createdAt: Date.now() }); setNewExamTitle(''); showToast("試卷架構已建立"); };
-            const deleteExam = async (id) => { if(!confirm("確定要銷毀此試卷嗎？此操作不可逆！")) return; await deleteDoc(doc(db, 'exams', id)); if(selectedExam?.id === id) setSelectedExam(null); showToast("試卷已銷毀", "success"); };
-            const togglePublish = async (ex) => { const n = !ex.isPublished; setSelectedExam(p=>({...p, isPublished:n})); await updateDoc(doc(db, 'exams', ex.id), { isPublished: n }); showToast(n ? "已派送" : "已下架"); };
-            const updateSetting = async (field, val) => { setSelectedExam(p=>({...p, [field]:val})); await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: val }); showToast("設定已同步儲存"); };
-            const saveTitle = async () => { const t = editTitleValue.trim(); setSelectedExam(p=>({...p, title:t})); await updateDoc(doc(db, 'exams', selectedExam.id), { title: t }); setIsEditingTitle(false); showToast("名稱已更新"); };
-            
-            const handleExcel = async (overwrite) => {
-                const lines = pasteText.trim().split('\n'); const newQs = [];
-                for (let l of lines) {
-                    let cols = l.split('\t').map(s => s.trim()); if (cols.length < 6) cols = l.split(',').map(s => s.trim());
-                    if (cols.length >= 6 && cols[0] !== '題目') newQs.push({ question: cols[0], correct: cols[1], options: [cols[2], cols[3], cols[4], cols[5]] });
-                }
-                const final = overwrite ? newQs : [...(selectedExam.questions || []), ...newQs];
-                setSelectedExam(p=>({...p, questions:final}));
-                await updateDoc(doc(db, 'exams', selectedExam.id), { questions: final }); setPasteText(''); showToast("匯入成功");
+            const createExam = async () => {
+                if (!newExamTitle.trim()) return;
+                try {
+                    await addDoc(collection(db, 'exams'), {
+                        title: newExamTitle, teacherId: user.uid,
+                        isPublished: false, drawCount: 20, allowMultipleAttempts: true,
+                        questions: [], createdAt: Date.now()
+                    });
+                    setNewExamTitle(''); showToast("試卷架構已建立，請繼續建立題庫");
+                } catch (e) { showToast(e.message, "error"); }
             };
-            
-            const openModal = (idx = null, data = null) => { if(idx!==null) {setEditIndex(idx); setModalData({...data});} else {setEditIndex(null); setModalData({question:'',correct:'',options:['','','','']});} setIsModalOpen(true); };
-            
-            const saveSingle = async () => {
-                const qs = [...(selectedExam.questions || [])]; if (editIndex!==null) qs[editIndex] = modalData; else qs.push(modalData);
-                setSelectedExam(p=>({...p, questions:qs}));
-                await updateDoc(doc(db, 'exams', selectedExam.id), { questions: qs }); setIsModalOpen(false); showToast("儲存成功");
+
+            const deleteExam = async (examId) => {
+                if(!confirm("確定要銷毀此試卷嗎？此操作不可逆！")) return;
+                await deleteDoc(doc(db, 'exams', examId));
+                if(selectedExam?.id === examId) setSelectedExam(null);
+                showToast("試卷已銷毀", "success");
+            };
+
+            const togglePublish = async (exam) => {
+                await updateDoc(doc(db, 'exams', exam.id), { isPublished: !exam.isPublished });
+                showToast(exam.isPublished ? "試卷已下架" : "試卷已成功派送至學生端！", "success");
+            };
+
+            const updateExamSetting = async (field, value) => {
+                if(!selectedExam) return;
+                await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: value });
+                showToast("設定已同步儲存");
+            };
+
+            const saveExamTitle = async () => {
+                if (!editTitleValue.trim()) { showToast("試卷名稱不可為空", "error"); return; }
+                try {
+                    await updateDoc(doc(db, 'exams', selectedExam.id), { title: editTitleValue.trim() });
+                    setIsEditingTitle(false);
+                    showToast("試卷名稱已更新", "success");
+                } catch (error) { showToast("名稱更新失敗: " + error.message, "error"); }
+            };
+
+            const handleQuestionCSVUpload = (e) => {
+                if(!selectedExam) return;
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const text = event.target.result;
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    const newQuestions = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const cols = lines[i].split(',').map(s => s.trim());
+                        if (cols.length >= 6) {
+                            newQuestions.push({ question: cols[0], correct: cols[1], options: [cols[2], cols[3], cols[4], cols[5]] });
+                        }
+                    }
+                    if(newQuestions.length > 0) {
+                        await updateDoc(doc(db, 'exams', selectedExam.id), { questions: newQuestions });
+                        showToast(`題庫匯入成功，共 ${newQuestions.length} 題`, "success");
+                    } else { showToast("無法解析題庫，請檢查格式", "error"); }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            };
+
+            const handleExcelPaste = async (overwrite = false) => {
+                if(!pasteText.trim()) { showToast("請先在輸入框貼上 Excel 內容", "error"); return; }
+                const lines = pasteText.trim().split('\n');
+                const newQuestions = [];
+                for (let line of lines) {
+                    let cols = line.split('\t').map(s => s.trim());
+                    if (cols.length < 6) cols = line.split(',').map(s => s.trim());
+                    if (cols.length >= 6 && cols[0] !== '題目' && cols[0] !== '') { 
+                        newQuestions.push({ question: cols[0], correct: cols[1], options: [cols[2], cols[3], cols[4], cols[5]] });
+                    }
+                }
+                if(newQuestions.length > 0) {
+                    const updatedQuestions = overwrite ? newQuestions : [...(selectedExam.questions || []), ...newQuestions];
+                    await updateDoc(doc(db, 'exams', selectedExam.id), { questions: updatedQuestions });
+                    showToast(overwrite ? `成功覆寫並匯入 ${newQuestions.length} 題` : `成功解析並附加 ${newQuestions.length} 題`, "success");
+                    setPasteText(''); 
+                } else { showToast("無法解析，請確保包含：題目、答案、選項1~4", "error"); }
+            };
+
+            const openModal = (index = null, qData = null) => {
+                if (index !== null && qData) {
+                    setEditIndex(index); setModalData({ ...qData });
+                } else {
+                    setEditIndex(null); setModalData({ question: '', correct: '', options: ['', '', '', ''] });
+                }
+                setIsModalOpen(true);
+            };
+
+            const saveSingleQuestion = async () => {
+                if(!modalData.question || !modalData.correct || modalData.options.some(o => !o.trim())) {
+                    showToast("請完整填寫題目、答案與所有選項", "error"); return;
+                }
+                const currentQs = [...(selectedExam.questions || [])];
+                if (editIndex !== null) currentQs[editIndex] = modalData; 
+                else currentQs.push(modalData); 
+                await updateDoc(doc(db, 'exams', selectedExam.id), { questions: currentQs });
+                setIsModalOpen(false);
+                showToast(editIndex !== null ? "題目編輯成功" : "單題新增成功", "success");
+            };
+
+            const deleteSingleQuestion = async (index) => {
+                if(!confirm("確定要刪除這道題目嗎？")) return;
+                const currentQs = [...(selectedExam.questions || [])];
+                currentQs.splice(index, 1);
+                await updateDoc(doc(db, 'exams', selectedExam.id), { questions: currentQs });
+                showToast("題目已刪除");
             };
 
             const downloadExamSample = () => downloadCSV("試卷題庫範例.csv", "題目,正確答案(輸入選項內容或1~4數字),選項1,選項2,選項3,選項4\n「躊躇」的意思是什麼？,1,猶豫不決,非常快樂,走路很快,大聲說話\n蘋果的英文是什麼？,Apple,Banana,Apple,Orange,Grape");
 
             return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full relative">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in h-full relative">
                     <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-cyan-500 dark:border-t-neon-cyan">
                         <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><BookOpen className="text-cyan-600 dark:text-neon-cyan" /> 試卷庫</h2>
                         <div className="flex gap-2 mb-6">
@@ -856,9 +964,12 @@
                                 <div key={ex.id} onClick={() => setSelectedExam(ex)} className={`p-4 rounded-xl cursor-pointer transition flex flex-col gap-2 border group ${selectedExam?.id === ex.id ? 'bg-cyan-50 border-cyan-400 shadow-sm dark:bg-neon-cyan/10 dark:border-neon-cyan dark:shadow-neon-cyan text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
                                     <div className="flex justify-between items-center">
                                         <span className="font-bold truncate pr-2">{ex.title}</span>
-                                        <button onClick={e => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {ex.isPublished ? <span className="text-[10px] bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main px-2 py-1 rounded font-bold">已派送</span> : <span className="text-[10px] bg-slate-300 dark:bg-gray-700 text-slate-600 dark:text-gray-300 px-2 py-1 rounded font-bold">草稿</span>}
+                                            <button onClick={(e) => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
+                                        </div>
                                     </div>
-                                    <div className="text-xs text-slate-500 dark:text-gray-500">{ex.isPublished ? '已派送' : '草稿'} | {ex.questions?.length || 0} 題</div>
+                                    <div className="text-xs text-slate-500 dark:text-gray-500">題庫：{ex.questions?.length || 0} 題</div>
                                 </div>
                             ))}
                         </div>
@@ -911,6 +1022,7 @@
                                     </div>
                                 </div>
                                 
+                                {/* 🌟 套用共用模組：頁籤切換 */}
                                 <div className="flex gap-2 md:gap-6 border-b border-slate-200 dark:border-gray-800 mb-6 overflow-x-auto shrink-0 pb-1">
                                     <ExamTabButton id="warroom" currentTab={examTab} setTab={setExamTab} icon={Activity} label="📡 即時戰情室" />
                                     <ExamTabButton id="settings" currentTab={examTab} setTab={setExamTab} icon={Settings} label="測驗邏輯設定" />
@@ -922,27 +1034,17 @@
                                     {examTab === 'warroom' && <WarRoom exam={selectedExam} />}
 
                                     {examTab === 'settings' && (
-                                        <div className="flex flex-col gap-6 fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
                                             <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-between">
                                                 <div>
                                                     <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
-                                                    <div className="mb-4">
-                                                        <div className="flex justify-between mb-2">
-                                                            <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
-                                                            <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
-                                                        </div>
-                                                        <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
-                                                        <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 若設定數量大於總題數，將以「全題數」測驗。</p>
+                                                    <div className="flex justify-between mb-2">
+                                                        <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
+                                                        <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
                                                     </div>
-                                                    <div className="pt-4 border-t border-slate-100 dark:border-gray-700">
-                                                        <div className="flex justify-between mb-2">
-                                                            <label className="text-sm font-bold text-slate-700 dark:text-gray-300">每題作答時間 (Time Limit)</label>
-                                                            <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.timeLimit || 30} 秒</span>
-                                                        </div>
-                                                        <input type="range" min="5" max="120" step="5" value={selectedExam.timeLimit || 30} onChange={e => updateExamSetting('timeLimit', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
-                                                        <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 每題倒數秒數，影響計分權重 (預設 30 秒)。</p>
-                                                    </div>
+                                                    <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
                                                 </div>
+                                                <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-4">💡 若設定數量大於總題數，系統將自動以「全題數」進行隨機順序測驗。</p>
                                             </div>
 
                                             <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-center">
@@ -951,8 +1053,8 @@
                                                         <div className="text-base font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
                                                         <div className="text-xs text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
                                                     </div>
-                                                    <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full flex items-center transition-colors duration-300 shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
-                                                        <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${selectedExam.allowMultipleAttempts ? 'translate-x-8' : 'translate-x-1'}`}></div>
+                                                    <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full transition-all duration-300 relative flex items-center shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
+                                                        <div className={`w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-sm ${selectedExam.allowMultipleAttempts ? 'left-8' : 'left-1'}`}></div>
                                                     </button>
                                                 </div>
                                             </div>
@@ -988,7 +1090,7 @@
                                             </div>
 
                                             <div>
-                                                <div className="flex justify-between items-center border-t border-slate-200 dark:border-gray-800 pt-4 mb-4">
+                                                <div className="flex justify-between items-center mb-4 mt-2 border-t border-slate-200 dark:border-gray-800 pt-4">
                                                     <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2"><BookOpen size={18}/> 試卷內容檢視</h4>
                                                     <button onClick={() => openModal()} className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue text-sm rounded-lg transition font-bold flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={16}/> 單題新增</button>
                                                 </div>
@@ -1001,7 +1103,7 @@
                                                                 <span className="font-bold text-slate-800 dark:text-white text-lg pr-12 leading-snug"><span className="text-cyan-600 dark:text-neon-cyan mr-2">{idx + 1}.</span>{q.question}</span>
                                                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition absolute top-4 right-4 bg-white dark:bg-dark-main pl-2">
                                                                     <button onClick={() => openModal(idx, q)} className="text-slate-400 hover:text-blue-600 dark:hover:text-neon-blue p-1"><Edit size={18}/></button>
-                                                                    <button onClick={async()=>{const qs=[...selectedExam.questions]; qs.splice(idx,1); setSelectedExam(p=>({...p, questions:qs})); await updateDoc(doc(db,'exams',selectedExam.id),{questions:qs});}} className="text-slate-400 hover:text-red-500 dark:hover:text-neon-red p-1"><Trash2 size={18}/></button>
+                                                                    <button onClick={() => deleteSingleQuestion(idx)} className="text-slate-400 hover:text-red-500 dark:hover:text-neon-red p-1"><Trash2 size={18}/></button>
                                                                 </div>
                                                             </div>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-gray-400">
@@ -1023,13 +1125,14 @@
                         )}
                     </div>
 
+                    {/* 🌟 套用共用模組：編輯/新增題目 */}
                     <BaseModal
                         isOpen={isModalOpen}
                         onClose={() => setIsModalOpen(false)}
                         title={editIndex !== null ? "編輯題目" : "單題新增"}
                         icon={editIndex !== null ? Edit : Plus}
                         confirmText="儲存題目"
-                        onConfirm={saveSingle}
+                        onConfirm={saveSingleQuestion}
                         maxWidth="max-w-2xl"
                     >
                         <div>
@@ -1053,6 +1156,7 @@
             );
         };
 
+        // --- 主程式：儀表板框架 ---
         const Dashboard = ({ user, isDarkMode, toggleTheme }) => {
             const [view, setView] = useState('classes');
             const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
@@ -1060,13 +1164,13 @@
             const showToast = useToast();
 
             const handleUpdatePassword = async () => {
-                if(newPassword.length < 6) return showToast("至少 6 字元", "error");
+                if (newPassword.length < 6) { showToast("密碼長度至少需要 6 個字元", "error"); return; }
                 try {
                     await updatePassword(user, newPassword);
-                    setIsPwdModalOpen(false);
-                    showToast("更新成功");
+                    showToast("存取金鑰 (密碼) 已成功更新！", "success");
+                    setIsPwdModalOpen(false); setNewPassword('');
                 } catch (error) {
-                    if (error.code === 'auth/requires-recent-login') showToast("安全考量：若登入已久請先登出再登入後修改", "error");
+                    if (error.code === 'auth/requires-recent-login') showToast("基於安全考量，請先登出並重新登入後，再進行密碼修改", "error");
                     else showToast("密碼更新失敗：" + error.message, "error");
                 }
             };
@@ -1080,10 +1184,12 @@
                             <span className="text-xs border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 px-2 py-0.5 rounded-full ml-2">v2.0 Soft-Light</span>
                         </div>
                         <div className="flex items-center gap-2 md:gap-4">
+                            {/* 🌟 新增說明指南的連結 */}
                             <a href="readme.html" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="系統部署與轉移指南">
                                 <HelpCircle size={20} />
                             </a>
-                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
+                            
+                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="佈景主題切換">
                                 {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
                             </button>
                             <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
@@ -1108,6 +1214,7 @@
                         </section>
                     </main>
 
+                    {/* 🌟 套用共用模組：修改密碼 */}
                     <BaseModal
                         isOpen={isPwdModalOpen}
                         onClose={() => setIsPwdModalOpen(false)}
@@ -1130,7 +1237,7 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
-            const [checking, setChecking] = useState(true);
+            const [authChecking, setAuthChecking] = useState(true);
             const [isDarkMode, setIsDarkMode] = useState(false);
 
             useEffect(() => {
@@ -1143,12 +1250,12 @@
             useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
-                    setChecking(false);
+                    setAuthChecking(false);
                 });
                 return () => unsubscribe();
             }, []);
 
-            if (checking) return (
+            if (authChecking) return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-main">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan"></div>
                 </div>
@@ -1161,7 +1268,8 @@
             );
         };
 
-        createRoot(document.getElementById('root')).render(<App />);
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
