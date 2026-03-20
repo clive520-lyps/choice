@@ -262,38 +262,99 @@
                 </div>
             );
 
+            // 🌟 重新建構的戰情室內容區塊 (垂直佈局)
             const renderInnerContent = () => (
                 <>
+                    {/* 頂部：全班戰況拉鋸戰 */}
                     <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col gap-3 shrink-0">
                         <div className="flex justify-between items-end">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Target size={18} className="text-cyan-600 dark:text-neon-cyan"/> 戰況拉鋸戰</h3>
-                            <div className="flex items-center gap-3"><span className="text-2xl font-black text-slate-800 dark:text-white font-mono">{overallAccuracy}%</span>{!isFullScreen && <button onClick={() => setIsFullScreen(true)} className="p-1.5 text-slate-400 hover:text-cyan-600 dark:hover:text-neon-cyan bg-slate-100 hover:bg-cyan-50 dark:bg-gray-800 rounded-lg transition"><Maximize2 size={20}/></button>}</div>
-                        </div>
-                        <div className="h-8 w-full rounded-full overflow-hidden flex bg-red-100 dark:bg-red-900/30 relative shadow-inner">
-                            <div className="h-full bg-cyan-500 dark:bg-cyan-600 transition-all duration-1000 ease-out flex items-center justify-end px-3" style={{ width: `${overallAccuracy}%` }}>{overallAccuracy > 10 && <span className="text-xs font-bold text-white">正確</span>}</div>
-                            <div className="h-full bg-red-500 dark:bg-red-600 transition-all duration-1000 ease-out flex items-center justify-start px-3" style={{ width: `${100 - overallAccuracy}%` }}>{(100 - overallAccuracy) > 10 && <span className="text-xs font-bold text-white">錯誤</span>}</div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
-                        <div className="xl:col-span-2 bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0"><TrendingUp size={18} className="text-green-500"/> 即時戰力排行榜</h3>
-                            <div className={`overflow-y-auto space-y-3 pr-2 ${isFullScreen ? 'max-h-[50vh]' : 'max-h-80'}`}>
-                                {studentScores.map((student, idx) => (
-                                    <div key={student.studentId} className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item ${idx===0?'bg-amber-50 dark:bg-amber-900/20 border-amber-200':idx===1?'bg-slate-50 dark:bg-slate-800/60 border-slate-300':idx===2?'bg-orange-50 dark:bg-orange-900/20 border-orange-200':'bg-slate-100 dark:bg-gray-800 border-slate-100 dark:border-gray-800'}`} style={{animationDelay:`${idx*0.05}s`}}>
-                                        <div className="flex items-center justify-center w-8 h-8 font-black text-lg">{idx < 3 ? <Award size={24} className={idx===0?'text-amber-500':idx===1?'text-slate-400':'text-orange-500'}/> : idx + 1}</div>
-                                        <div className="flex-1 min-w-0"><div className="font-bold text-slate-800 dark:text-white truncate">{student.studentName}</div><div className="flex items-center gap-2 mt-1"><div className="h-1.5 w-full max-w-[150px] bg-red-100 dark:bg-red-900/30 rounded-full overflow-hidden"><div className="h-full bg-cyan-500" style={{width:`${student.accuracy||0}%`}}></div></div><span className="text-[10px] font-mono">{student.accuracy||0}%</span></div></div>
-                                        <div className="text-right shrink-0"><div className="text-xl font-black text-cyan-600 dark:text-neon-cyan font-mono">{student.score}</div><div className="text-[10px] text-slate-400 font-bold">PTS</div></div>
-                                    </div>
-                                ))}
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Target size={18} className="text-cyan-600 dark:text-neon-cyan"/> 戰況拉鋸戰 (全班總答對率)</h3>
+                            <div className="flex items-center gap-3 md:gap-5">
+                                <span className="text-2xl font-black text-slate-800 dark:text-white font-mono">{overallAccuracy}%</span>
+                                {!isFullScreen && (
+                                    <button onClick={() => setIsFullScreen(true)} className="p-1.5 text-slate-400 hover:text-cyan-600 dark:hover:text-neon-cyan bg-slate-100 hover:bg-cyan-50 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition" title="進入全螢幕投影模式">
+                                        <Maximize2 size={20}/>
+                                    </button>
+                                )}
                             </div>
                         </div>
-                        <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col min-h-0">
-                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 錯題熱點 (點擊放大)</h3>
-                            <div className="grid grid-cols-1 gap-4 overflow-y-auto pr-2 pb-2">
-                                {mistakeStats.length === 0 ? <div className="text-center text-red-400 text-sm mt-6">無錯題記錄</div> : mistakeStats.map((stat, idx) => (
-                                    <div key={idx} onClick={() => setSelectedMistake(stat)} className="bg-white dark:bg-dark-main p-4 rounded-xl border border-red-100 flex flex-col justify-between animate-item shadow-sm cursor-pointer hover:border-red-400 transition-all group active:scale-95" style={{animationDelay:`${idx*0.1}s`}}>
-                                        <div className="text-sm font-bold text-slate-800 dark:text-gray-200 line-clamp-3 leading-snug group-hover:text-red-500 mb-3">{stat.question}</div>
-                                        <div className="flex justify-between items-center border-t border-slate-100 pt-3 mt-auto"><span className="text-[10px] text-slate-500 flex items-center gap-1 font-bold"><BarChart3 size={12}/> 解析</span><div className="text-xs font-bold text-red-600 flex items-center gap-1 bg-red-100 px-2 py-1 rounded-md"><Users size={14}/> {stat.count} 人答錯</div></div>
+                        
+                        <div className="h-8 w-full rounded-full overflow-hidden flex bg-red-100 dark:bg-red-900/30 relative shadow-inner">
+                            <div className="h-full bg-cyan-500 dark:bg-cyan-600 transition-all duration-1000 ease-out flex items-center justify-end px-3" style={{ width: `${overallAccuracy}%` }}>
+                                {overallAccuracy > 10 && <span className="text-xs font-bold text-white drop-shadow-md">正確</span>}
+                            </div>
+                            <div className="h-full bg-red-500 dark:bg-red-600 transition-all duration-1000 ease-out flex items-center justify-start px-3" style={{ width: `${100 - overallAccuracy}%` }}>
+                                {(100 - overallAccuracy) > 10 && <span className="text-xs font-bold text-white drop-shadow-md">錯誤</span>}
+                            </div>
+                            <div className="absolute top-0 bottom-0 w-2 bg-white/50 blur-sm mix-blend-overlay transition-all duration-1000" style={{ left: `calc(${overallAccuracy}% - 4px)` }}></div>
+                        </div>
+                    </div>
+
+                    {/* 🌟 版面變更：改為垂直堆疊 (flex-col) 而不是左右並排的 Grid */}
+                    <div className="flex flex-col gap-6 flex-1 min-h-0">
+                        
+                        {/* 中段：即時戰力排行榜 (全寬) */}
+                        <div className="bg-white dark:bg-dark-card p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col shrink-0">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 shrink-0"><TrendingUp size={18} className="text-green-500"/> 即時戰力排行榜</h3>
+                            <div className={`overflow-y-auto space-y-3 pr-2 ${isFullScreen ? 'max-h-[35vh]' : 'max-h-64'}`}>
+                                {studentScores.map((student, idx) => {
+                                    let rankColor = "text-slate-400 dark:text-gray-500";
+                                    let rankBg = "bg-slate-100 dark:bg-gray-800";
+                                    if (idx === 0) { rankColor = "text-amber-500 dark:text-neon-gold"; rankBg = "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 shadow-[0_0_10px_rgba(255,215,0,0.15)]"; }
+                                    else if (idx === 1) { rankColor = "text-slate-400 dark:text-slate-300"; rankBg = "bg-slate-50 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600/50"; }
+                                    else if (idx === 2) { rankColor = "text-orange-500 dark:text-orange-400"; rankBg = "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50"; }
+
+                                    return (
+                                        <div key={student.studentId} className={`flex items-center gap-4 p-3 md:p-4 rounded-xl border transition-all animate-item ${rankBg} ${idx > 2 ? 'border-slate-100 dark:border-gray-800' : ''}`} style={{animationDelay: `${idx * 0.05}s`}}>
+                                            <div className={`flex items-center justify-center w-8 h-8 rounded-full font-black text-lg ${rankColor}`}>
+                                                {idx < 3 ? <Award size={24}/> : idx + 1}
+                                            </div>
+                                            
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-slate-800 dark:text-white truncate text-sm md:text-base">
+                                                    {student.studentName}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className="h-1.5 w-24 md:w-32 bg-red-100 dark:bg-red-900/30 rounded-full overflow-hidden shrink-0">
+                                                        <div className="h-full bg-cyan-500 transition-all duration-1000" style={{width: `${student.accuracy || 0}%`}}></div>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-500 font-mono">{student.accuracy || 0}%</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="text-right shrink-0">
+                                                <div className="text-xl md:text-2xl font-black text-cyan-600 dark:text-neon-cyan font-mono">{student.score}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase">PTS</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* 底部：易錯題警戒區 (全寬，網格排列充分利用空間) */}
+                        <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex flex-col flex-1 min-h-0">
+                            <h3 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 shrink-0"><Flame size={18} className="animate-pulse"/> 傷亡最慘重題 (點擊放大檢討)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 pb-2">
+                                {mistakeStats.length === 0 ? (
+                                    <div className="col-span-full text-center text-red-400 dark:text-red-500/60 text-sm mt-6 mb-6">目前無錯題記錄，全班表現優異！</div>
+                                ) : mistakeStats.map((stat, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        onClick={() => setSelectedMistake(stat)}
+                                        className="bg-white dark:bg-dark-main p-4 rounded-xl border border-red-100 dark:border-red-900/50 flex flex-col justify-between animate-item shadow-sm cursor-pointer hover:border-red-400 hover:shadow-md transition-all group active:scale-95" 
+                                        style={{animationDelay: `${idx * 0.1}s`}}
+                                        title="點擊放大檢討此題"
+                                    >
+                                        <div className="text-sm md:text-base font-bold text-slate-800 dark:text-gray-200 line-clamp-3 leading-snug group-hover:text-red-500 transition mb-3">
+                                            {stat.question}
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 dark:border-gray-800 pt-3 mt-auto">
+                                            <span className="text-[10px] text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded flex items-center gap-1 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition font-bold"><BarChart3 size={12}/> 解析</span>
+                                            <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-md">
+                                                <Users size={14}/> {stat.count} 人答錯
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -308,53 +369,103 @@
                         <ModalPortal>
                             <div className="fixed inset-0 z-[110] bg-slate-50 dark:bg-dark-main overflow-y-auto p-4 md:p-8 flex flex-col fade-in">
                                 <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-6">
-                                    <div className="flex justify-between items-center shrink-0 bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                        <div className="flex items-center gap-4"><div className="p-3 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl"><Activity className="text-cyan-600" size={28}/></div><div><h2 className="text-2xl font-black text-slate-800 dark:text-white">{exam.title}</h2><p className="text-sm text-slate-500 font-bold mt-1">即時戰情室 (投影模式)</p></div></div>
-                                        <button onClick={() => setIsFullScreen(false)} className="bg-red-50 text-red-500 p-4 rounded-full transition shadow-sm border border-red-100"><X size={28}/></button>
+                                    <div className="flex justify-between items-center shrink-0 bg-white dark:bg-dark-card p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl">
+                                                <Activity className="text-cyan-600 dark:text-cyan-400" size={28}/>
+                                            </div>
+                                            <div>
+                                                <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{exam.title}</h2>
+                                                <p className="text-sm text-slate-500 dark:text-gray-400 font-bold tracking-widest mt-1">即時戰情室 (投影模式)</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setIsFullScreen(false)} className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-500 hover:text-red-600 dark:text-red-400 p-3 md:p-4 rounded-full transition shadow-sm border border-red-100 dark:border-red-900/50" title="關閉全螢幕">
+                                            <X size={28}/>
+                                        </button>
                                     </div>
                                     {renderInnerContent()}
                                 </div>
                             </div>
                         </ModalPortal>
                     ) : (
-                        <div className="flex flex-col gap-6 fade-in relative pb-10 h-full">{renderInnerContent()}</div>
+                        <div className="flex flex-col gap-6 fade-in relative pb-10 h-full">
+                            {renderInnerContent()}
+                        </div>
                     )}
 
                     {selectedMistake && (
                         <ModalPortal>
-                            <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 bg-slate-900/90 dark:bg-black/90 backdrop-blur-md fade-in">
-                                <div className="bg-white dark:bg-dark-card w-[96vw] h-[96vh] rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
-                                    <div className="px-6 py-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
-                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-3"><Flame className="text-red-500" size={32}/> 錯題深度解析</h3>
-                                        <div className="flex items-center gap-6">
+                            <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-6 bg-slate-900/90 dark:bg-black/90 backdrop-blur-md fade-in">
+                                <div className="bg-white dark:bg-dark-card w-[96vw] h-[96vh] max-w-none rounded-3xl shadow-2xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden animate-[slideIn_0.2s_ease-out]">
+                                    
+                                    <div className="px-4 md:px-10 py-4 md:py-6 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 shrink-0">
+                                        <h3 className="text-xl md:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3"><Flame className="text-red-500 hidden sm:block" size={32}/> 錯題深度解析</h3>
+                                        
+                                        <div className="flex items-center gap-3 md:gap-6">
                                             <div className="flex bg-slate-200 dark:bg-gray-700 rounded-lg p-1 shadow-inner">
-                                                {['small', 'medium', 'large'].map(sz => <button key={sz} onClick={() => setMistakeFontSize(sz)} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${mistakeFontSize===sz ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600' : 'text-slate-500'}`}>{sz==='small'?'小':sz==='large'?'大':'中'}</button>)}
+                                                <button onClick={() => setMistakeFontSize('small')} className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${mistakeFontSize === 'small' ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600 dark:text-neon-cyan' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}>小</button>
+                                                <button onClick={() => setMistakeFontSize('medium')} className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${mistakeFontSize === 'medium' ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600 dark:text-neon-cyan' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}>中</button>
+                                                <button onClick={() => setMistakeFontSize('large')} className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${mistakeFontSize === 'large' ? 'bg-white dark:bg-gray-600 shadow-sm text-cyan-600 dark:text-neon-cyan' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}>大</button>
                                             </div>
-                                            <button onClick={() => setSelectedMistake(null)} className="text-slate-400 hover:text-slate-700 transition bg-slate-200 p-3 rounded-full shadow-sm"><X size={32}/></button>
+                                            <button onClick={() => setSelectedMistake(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 p-2 md:p-3 rounded-full shadow-sm"><X className="w-5 h-5 md:w-8 md:h-8"/></button>
                                         </div>
                                     </div>
+                                    
                                     <div className="p-6 md:p-12 overflow-y-auto flex-1 flex flex-col">
-                                        <div className={`text-center shrink-0 transition-all duration-300 ${mistakeFontSize==='small'?'mb-6':mistakeFontSize==='large'?'mb-16':'mb-10'}`}>
-                                            <div className={`inline-flex items-center gap-2 text-red-500 bg-red-50 px-6 py-2 rounded-full font-bold mb-6 border border-red-100 ${mistakeFontSize==='small'?'text-sm':mistakeFontSize==='large'?'text-xl':'text-lg'}`}><Users size={24}/> 共有 {selectedMistake.count} 名學生在此題陣亡</div>
-                                            <h2 className={`${mistakeFontSize==='small'?'text-3xl':mistakeFontSize==='large'?'text-7xl':'text-5xl'} font-black text-slate-800 dark:text-white leading-relaxed transition-all duration-300`}>{selectedMistake.question}</h2>
+                                        
+                                        <div className={`text-center shrink-0 transition-all duration-300 ${mistakeFontSize === 'small' ? 'mb-6 md:mb-8' : mistakeFontSize === 'large' ? 'mb-10 md:mb-16' : 'mb-8 md:mb-12'}`}>
+                                            <div className={`inline-flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-6 py-2 md:py-3 rounded-full font-bold mb-6 border border-red-100 dark:border-red-900/50 shadow-sm transition-all duration-300 ${mistakeFontSize === 'small' ? 'text-xs md:text-sm' : mistakeFontSize === 'large' ? 'text-lg md:text-xl' : 'text-sm md:text-lg'}`}>
+                                                <Users className={mistakeFontSize === 'small' ? 'w-4 h-4' : mistakeFontSize === 'large' ? 'w-6 h-6' : 'w-5 h-5'}/> 共有 {selectedMistake.count} 名學生在此題陣亡
+                                            </div>
+                                            <h2 className={`${mistakeFontSize === 'small' ? 'text-2xl md:text-3xl lg:text-4xl' : mistakeFontSize === 'large' ? 'text-4xl md:text-6xl lg:text-7xl' : 'text-3xl md:text-4xl lg:text-5xl'} font-black text-slate-800 dark:text-white leading-relaxed md:leading-tight transition-all duration-300`}>
+                                                {selectedMistake.question}
+                                            </h2>
                                         </div>
-                                        <div className={`grid grid-cols-1 md:grid-cols-2 flex-1 transition-all duration-300 ${mistakeFontSize==='small'?'gap-3':mistakeFontSize==='large'?'gap-8':'gap-6'}`}>
+                                        
+                                        <div className={`grid grid-cols-1 md:grid-cols-2 flex-1 transition-all duration-300 ${mistakeFontSize === 'small' ? 'gap-3 md:gap-5' : mistakeFontSize === 'large' ? 'gap-6 md:gap-8' : 'gap-4 md:gap-6'}`}>
                                             {selectedMistake.options.map((opt, i) => {
                                                 const isCorrect = opt === selectedMistake.correctText;
                                                 const pickCount = selectedMistake.selections[opt] || 0;
-                                                const cardPadding = mistakeFontSize==='small'?'p-4':mistakeFontSize==='large'?'p-10':'p-8';
-                                                const minH = mistakeFontSize==='small'?'min-h-[100px]':mistakeFontSize==='large'?'min-h-[160px]':'min-h-[120px]';
-                                                const txtSz = mistakeFontSize==='small'?'text-xl':mistakeFontSize==='large'?'text-4xl':'text-2xl';
+                                                
+                                                let cardStyle = "bg-slate-50 dark:bg-gray-800/50 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 border-2";
+                                                if (isCorrect) {
+                                                    cardStyle = "bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-xl shadow-green-500/20 transform scale-[1.02] z-10 " + (mistakeFontSize === 'small' ? 'border-2' : 'border-4');
+                                                } else if (pickCount > 0) {
+                                                    cardStyle = "bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-900/50 text-red-800 dark:text-red-300 border-2";
+                                                }
+
+                                                const cardPadding = mistakeFontSize === 'small' ? 'p-4 md:p-6' : mistakeFontSize === 'large' ? 'p-8 md:p-10' : 'p-6 md:p-8';
+                                                const cardMinHeight = mistakeFontSize === 'small' ? 'min-h-[80px] md:min-h-[100px]' : mistakeFontSize === 'large' ? 'min-h-[140px] md:min-h-[160px]' : 'min-h-[100px] md:min-h-[120px]';
+                                                const textStyles = mistakeFontSize === 'small' ? 'text-lg md:text-xl' : mistakeFontSize === 'large' ? 'text-3xl md:text-4xl' : 'text-xl md:text-2xl';
+                                                const iconSize = mistakeFontSize === 'small' ? 'w-8 h-8 md:w-10 md:h-10' : mistakeFontSize === 'large' ? 'w-12 h-12 md:w-16 md:h-16' : 'w-10 h-10 md:w-12 md:h-12';
+                                                const badgePadding = mistakeFontSize === 'small' ? 'px-3 py-1 text-sm' : mistakeFontSize === 'large' ? 'px-5 py-3 text-xl' : 'px-4 py-2 text-base md:text-lg';
+
                                                 return (
-                                                    <div key={i} className={`relative rounded-3xl transition-all duration-300 flex flex-col justify-center font-bold ${cardPadding} ${minH} ${txtSz} ${isCorrect?'bg-green-50 border-green-500 text-green-700 border-4 z-10 shadow-lg':pickCount>0?'bg-red-50 border-red-300 text-red-800 border-2':'bg-slate-50 border-slate-200 text-slate-700 border-2'}`}>
-                                                        <div className="flex items-start gap-4 pr-32"><span className="opacity-50 mt-1">{String.fromCharCode(65+i)}.</span><span className="flex-1 leading-snug">{opt}</span></div>
-                                                        <div className="absolute top-1/2 -translate-y-1/2 right-8 flex items-center gap-3">{isCorrect && <CheckCircle2 className={`text-green-500 drop-shadow-lg ${mistakeFontSize==='small'?'w-10 h-10':'w-16 h-16'}`} />}{!isCorrect && pickCount > 0 && <div className={`bg-red-500 text-white rounded-full flex items-center gap-2 font-black shadow-lg animate-pulse ${mistakeFontSize==='small'?'px-3 py-1 text-sm':'px-5 py-3 text-xl'}`}><Users size={24}/> {pickCount} 人</div>}</div>
+                                                    <div key={i} className={`relative rounded-2xl md:rounded-3xl transition-all duration-300 flex flex-col justify-center font-bold ${cardPadding} ${cardMinHeight} ${textStyles} ${cardStyle}`}>
+                                                        <div className="flex items-start gap-4 md:gap-6 pr-16 md:pr-28">
+                                                            <span className="opacity-50 mt-1 shrink-0">{String.fromCharCode(65 + i)}.</span>
+                                                            <span className="flex-1 leading-snug">{opt}</span>
+                                                        </div>
+                                                        
+                                                        <div className="absolute top-1/2 -translate-y-1/2 right-4 md:right-8 flex items-center gap-2 md:gap-3">
+                                                            {isCorrect && <CheckCircle2 className={`text-green-500 drop-shadow-lg transition-all duration-300 ${iconSize}`} />}
+                                                            {!isCorrect && pickCount > 0 && (
+                                                                <div className={`bg-red-500 text-white rounded-full flex items-center gap-1 md:gap-2 font-black shadow-lg animate-pulse transition-all duration-300 ${badgePadding}`}>
+                                                                    <Users className={mistakeFontSize === 'small' ? 'w-4 h-4' : 'w-5 h-5'}/> {pickCount} 人
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                    <div className="px-6 py-5 bg-slate-50 border-t border-slate-200 flex justify-center md:justify-end shrink-0"><button onClick={() => setSelectedMistake(null)} className="w-full md:w-auto px-12 py-4 rounded-2xl bg-slate-800 text-white font-bold shadow-lg transition text-xl tracking-widest">結束解析</button></div>
+                                    
+                                    <div className="px-6 md:px-10 py-4 md:py-5 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-800 flex justify-center md:justify-end shrink-0">
+                                        <button onClick={() => setSelectedMistake(null)} className={`w-full md:w-auto rounded-xl md:rounded-2xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold shadow-lg active:scale-95 transition tracking-widest ${mistakeFontSize === 'small' ? 'px-8 py-3 text-base' : 'px-12 py-4 text-xl'}`}>
+                                            結束解析
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </ModalPortal>
@@ -363,11 +474,14 @@
             );
         };
 
+        // --- 🌟 頁籤按鈕模組 ---
         const ExamTabButton = ({ id, currentTab, setTab, icon: Icon, label }) => (
-            <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600' : 'text-slate-500 hover:text-slate-700'}`}><Icon size={18}/> {label}</button>
+            <button onClick={() => setTab(id)} className={`pb-3 font-bold text-sm md:text-base flex items-center gap-2 transition shrink-0 px-2 ${currentTab === id ? 'text-cyan-600 dark:text-neon-cyan border-b-2 border-cyan-600 dark:border-neon-cyan' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}>
+                <Icon size={18}/> {label}
+            </button>
         );
 
-        // 🌟 新增： AuthScreen 模組加回
+        // 🌟 登入與註冊介面 (已補回)
         const AuthScreen = ({ isDarkMode, toggleTheme }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
@@ -400,7 +514,7 @@
                 setResetLoading(true);
                 try {
                     await sendPasswordResetEmail(auth, resetEmail);
-                    showToast("密碼重設信件已發送，請至信箱收信並重設密碼", "success");
+                    showToast("密碼重設信件已發送", "success");
                     setIsResetModalOpen(false); setResetEmail('');
                 } catch (error) { showToast("發送失敗: " + error.message, "error"); }
                 setResetLoading(false);
@@ -419,14 +533,27 @@
                             <p className="text-cyan-700 dark:text-cyan-500/80 mt-2 font-mono text-sm uppercase tracking-widest">Teacher Terminal</p>
                         </div>
                         <form onSubmit={handleAuth} className="space-y-6">
-                            <div><label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">管理員信箱 (Email)</label><input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                            <div><label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label><input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} /></div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">管理員信箱 (Email)</label>
+                                <input type="email" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={email} onChange={e => setEmail(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">存取金鑰 (Password)</label>
+                                <input type="password" required className="w-full bg-slate-50 dark:bg-dark-card/50 border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" value={password} onChange={e => setPassword(e.target.value)} />
+                            </div>
                             {isLogin && <div className="text-right mt-1"><button type="button" onClick={() => { setResetEmail(email); setIsResetModalOpen(true); }} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline">忘記存取金鑰？</button></div>}
                             <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-300 flex justify-center items-center mt-2">{loading ? <span className="animate-pulse">連線中...</span> : (isLogin ? '啟動系統' : '註冊權限')}</button>
                         </form>
                         <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition">{isLogin ? '尚未擁有權限？點此註冊' : '已有管理權限？點此登入'}</button></div>
                     </div>
-                    <BaseModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} title="重設存取金鑰" icon={Key} confirmText={resetLoading ? '發送中...' : '發送重設信'} onConfirm={handlePasswordReset} isConfirmDisabled={resetLoading}><p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p><div><label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label><input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 transition" placeholder="example@email.com" /></div></BaseModal>
+                    
+                    <BaseModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} title="重設存取金鑰" icon={Key} confirmText={resetLoading ? '發送中...' : '發送重設信'} onConfirm={handlePasswordReset} isConfirmDisabled={resetLoading}>
+                        <p className="text-sm text-slate-600 dark:text-gray-400">請輸入您註冊時使用的 Email，系統將發送密碼重設連結至您的信箱。</p>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">管理員信箱</label>
+                            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 transition" placeholder="example@email.com" />
+                        </div>
+                    </BaseModal>
                 </div>
             );
         };
@@ -459,6 +586,7 @@
             const deleteClass = async (id) => { if (!confirm("警告：此操作將刪除所有相關學生與成績紀錄，確定嗎？")) return; await deleteDoc(doc(db, 'classes', id)); if(selectedClass?.id === id) setSelectedClass(null); showToast("已徹底刪除"); };
             const deleteStudent = async (id) => { await deleteDoc(doc(db, 'students', id)); showToast("學生已刪除"); };
             const saveEditStudent = async () => { await updateDoc(doc(db, 'students', editingStudent.id), { seatNo: editingStudent.seatNo, name: editingStudent.name }); setEditingStudent(null); showToast("資料已更新"); };
+            
             const handleCSV = e => {
                 const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
@@ -475,9 +603,76 @@
 
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-blue-500"><h2 className="text-xl font-bold flex items-center gap-2 mb-6"><Users className="text-blue-600" /> 班級中樞</h2><div className="flex gap-2 mb-6"><input type="text" placeholder="班級名稱" className="flex-1 bg-slate-50 border rounded-lg px-3 py-2 outline-none" value={newClassName} onChange={e=>setNewClassName(e.target.value)} /><button onClick={addClass} className="bg-blue-100 text-blue-700 px-4 rounded-lg font-bold">新增</button></div><div className="flex-1 overflow-y-auto space-y-3">{classes.map(c => <div key={c.id} onClick={() => setSelectedClass(c)} className={`p-4 rounded-xl cursor-pointer transition flex justify-between items-center border group ${selectedClass?.id === c.id ? 'bg-blue-50 border-blue-400' : 'bg-white'}`}><span className="font-bold">{c.name} 班</span><button onClick={e => { e.stopPropagation(); deleteClass(c.id); }} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={18} /></button></div>)}</div></div>
-                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full">{!selectedClass ? <div className="flex-1 flex flex-col items-center justify-center text-slate-400"><Users size={60} className="mb-4 opacity-20" /><p>請選擇班級以管理學生</p></div> : <div className="flex flex-col h-full"><div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">{selectedClass.name} 班</h2><div className="flex gap-3"><label className="bg-cyan-100 text-cyan-700 px-3 py-2 rounded-lg cursor-pointer transition"><Upload size={16} className="inline mr-1"/> 匯入<input type="file" accept=".csv" className="hidden" onChange={handleCSV} /></label></div></div><div className="bg-white rounded-xl border flex-1 overflow-hidden flex flex-col"><div className="grid grid-cols-4 bg-slate-100 p-4 text-sm font-bold"><div>座號</div><div className="col-span-2">姓名</div><div className="text-right">操作</div></div><div className="flex-1 overflow-y-auto">{students.map(s => <div key={s.id} className="grid grid-cols-4 p-4 border-b items-center hover:bg-slate-50 transition"><div>{s.seatNo}</div><div className="col-span-2 font-medium">{s.name}</div><div className="text-right flex justify-end gap-2"><button onClick={()=>setEditingStudent({...s})} className="text-slate-400 hover:text-blue-600"><Edit size={18}/></button><button onClick={()=>deleteStudent(s.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={18}/></button></div></div>)}</div></div></div>}
-                        <BaseModal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} title="編輯學生" icon={Edit} iconColor="text-blue-600" onConfirm={saveEditStudent}><div><label className="block text-sm font-bold mb-2">座號</label><input type="text" value={editingStudent?.seatNo || ''} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 border rounded-lg px-4 py-2" /></div><div><label className="block text-sm font-bold mb-2">姓名</label><input type="text" value={editingStudent?.name || ''} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 border rounded-lg px-4 py-2" /></div></BaseModal>
+                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-blue-500 dark:border-t-neon-blue">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><Users className="text-blue-600 dark:text-neon-blue" /> 班級中樞</h2>
+                        <div className="flex gap-2 mb-6">
+                            <input type="text" placeholder="輸入班級名稱 (如: 101)" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-neon-blue outline-none" value={newClassName} onChange={e=>setNewClassName(e.target.value)} />
+                            <button onClick={addClass} className="bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue px-4 rounded-lg font-bold transition flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={18}/> 新增</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                            {classes.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">尚無班級，請先新增</p>}
+                            {classes.map(c => (
+                                <div key={c.id} onClick={() => setSelectedClass(c)} className={`p-4 rounded-xl cursor-pointer transition flex justify-between items-center group border ${selectedClass?.id === c.id ? 'bg-blue-50 border-blue-400 shadow-sm dark:bg-neon-blue/10 dark:border-neon-blue dark:shadow-neon-blue text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
+                                    <span className="font-bold text-lg">{c.name} 班</span>
+                                    <button onClick={(e) => { e.stopPropagation(); deleteClass(c.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={18} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
+                        {!selectedClass ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
+                                <Users size={60} className="mb-4 opacity-20" />
+                                <p>請從左側選擇一個班級以管理學生</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col h-full fade-in">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-blue-700 dark:text-neon-blue">{selectedClass.name} 班 - 學生名單</h2>
+                                    <div className="flex gap-3">
+                                        <button onClick={downloadStudentSample} className="flex items-center gap-1 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 transition"><Download size={16}/> 範例下載</button>
+                                        <label className="flex items-center gap-1 text-sm bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:hover:bg-cyan-900/80 text-cyan-700 dark:text-neon-cyan px-3 py-2 rounded-lg border border-cyan-300 dark:border-neon-cyan/50 cursor-pointer transition dark:shadow-[0_0_10px_rgba(0,229,255,0.2)]">
+                                            <Upload size={16}/> 批次匯入
+                                            <input type="file" accept=".csv" className="hidden" onChange={handleStudentCSVUpload} />
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white dark:bg-dark-main rounded-xl border border-slate-200 dark:border-gray-700 flex-1 overflow-hidden flex flex-col">
+                                    <div className="grid grid-cols-4 bg-slate-100 dark:bg-gray-800/50 p-4 text-sm font-bold text-slate-600 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+                                        <div className="col-span-1">座號</div>
+                                        <div className="col-span-2">姓名</div>
+                                        <div className="col-span-1 text-right">操作</div>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto">
+                                        {students.length === 0 ? <div className="p-10 text-center text-slate-500 dark:text-gray-500">目前無學生資料，請使用批次匯入</div> :
+                                            students.map(s => (
+                                                <div key={s.id} className="grid grid-cols-4 p-4 border-b border-slate-100 dark:border-gray-800 items-center hover:bg-slate-50 dark:hover:bg-gray-800/30 transition text-slate-800 dark:text-gray-200">
+                                                    <div className="col-span-1 font-mono text-cyan-700 dark:text-neon-cyan font-bold">{s.seatNo}</div>
+                                                    <div className="col-span-2 font-medium">{s.name}</div>
+                                                    <div className="col-span-1 text-right flex justify-end gap-2">
+                                                        <button onClick={()=>setEditingStudent({ ...s })} className="text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-neon-blue transition p-1"><Edit size={18}/></button>
+                                                        <button onClick={()=>deleteStudent(s.id)} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red transition p-1"><Trash2 size={18}/></button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <BaseModal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} title="編輯學生" icon={Edit} iconColor="text-blue-600 dark:text-neon-blue" confirmText="儲存變更" onConfirm={saveEditStudent}>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">座號</label>
+                                <input type="text" value={editingStudent?.seatNo || ''} onChange={e => setEditingStudent({...editingStudent, seatNo: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">姓名</label>
+                                <input type="text" value={editingStudent?.name || ''} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition" />
+                            </div>
+                        </BaseModal>
                     </div>
                 </div>
             );
@@ -502,7 +697,6 @@
                 return () => unsub();
             }, [user.uid]);
 
-            // 🌟 核心修復：當資料庫有變動時，確保您「正在觀看的這份考卷」也會同步更新
             useEffect(() => {
                 if (selectedExam) {
                     const latest = exams.find(e => e.id === selectedExam.id);
@@ -512,12 +706,15 @@
                 }
             }, [exams]);
 
-            const createExam = async () => { if (!newExamTitle.trim()) return; await addDoc(collection(db, 'exams'), { title: newExamTitle, teacherId: user.uid, isPublished: false, drawCount: 20, allowMultipleAttempts: true, timeLimit: 30, questions: [], createdAt: Date.now() }); setNewExamTitle(''); showToast("試卷已建立"); };
-            const deleteExam = async (id) => { if(!confirm("確定刪除？")) return; await deleteDoc(doc(db, 'exams', id)); if(selectedExam?.id === id) setSelectedExam(null); showToast("已刪除"); };
-            
-            // 🌟 樂觀更新 (Optimistic UI)：點擊瞬間立刻切換畫面狀態 (setSelectedExam)，再同步給 Firebase
+            useEffect(() => {
+                setIsEditingTitle(false);
+                setExamTab('warroom');
+            }, [selectedExam?.id]);
+
+            const createExam = async () => { if (!newExamTitle.trim()) return; await addDoc(collection(db, 'exams'), { title: newExamTitle, teacherId: user.uid, isPublished: false, drawCount: 20, allowMultipleAttempts: true, timeLimit: 30, questions: [], createdAt: Date.now() }); setNewExamTitle(''); showToast("試卷架構已建立"); };
+            const deleteExam = async (id) => { if(!confirm("確定要銷毀此試卷嗎？此操作不可逆！")) return; await deleteDoc(doc(db, 'exams', id)); if(selectedExam?.id === id) setSelectedExam(null); showToast("試卷已銷毀", "success"); };
             const togglePublish = async (ex) => { const n = !ex.isPublished; setSelectedExam(p=>({...p, isPublished:n})); await updateDoc(doc(db, 'exams', ex.id), { isPublished: n }); showToast(n ? "已派送" : "已下架"); };
-            const updateSetting = async (field, val) => { setSelectedExam(p=>({...p, [field]:val})); await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: val }); showToast("設定已儲存"); };
+            const updateSetting = async (field, val) => { setSelectedExam(p=>({...p, [field]:val})); await updateDoc(doc(db, 'exams', selectedExam.id), { [field]: val }); showToast("設定已同步儲存"); };
             const saveTitle = async () => { const t = editTitleValue.trim(); setSelectedExam(p=>({...p, title:t})); await updateDoc(doc(db, 'exams', selectedExam.id), { title: t }); setIsEditingTitle(false); showToast("名稱已更新"); };
             
             const handleExcel = async (overwrite) => {
@@ -527,7 +724,7 @@
                     if (cols.length >= 6 && cols[0] !== '題目') newQs.push({ question: cols[0], correct: cols[1], options: [cols[2], cols[3], cols[4], cols[5]] });
                 }
                 const final = overwrite ? newQs : [...(selectedExam.questions || []), ...newQs];
-                setSelectedExam(p=>({...p, questions:final})); // 🌟 樂觀更新題庫
+                setSelectedExam(p=>({...p, questions:final}));
                 await updateDoc(doc(db, 'exams', selectedExam.id), { questions: final }); setPasteText(''); showToast("匯入成功");
             };
             
@@ -535,26 +732,29 @@
             
             const saveSingle = async () => {
                 const qs = [...(selectedExam.questions || [])]; if (editIndex!==null) qs[editIndex] = modalData; else qs.push(modalData);
-                setSelectedExam(p=>({...p, questions:qs})); // 🌟 樂觀更新新增的題目
+                setSelectedExam(p=>({...p, questions:qs}));
                 await updateDoc(doc(db, 'exams', selectedExam.id), { questions: qs }); setIsModalOpen(false); showToast("儲存成功");
             };
 
+            const downloadExamSample = () => downloadCSV("試卷題庫範例.csv", "題目,正確答案(輸入選項內容或1~4數字),選項1,選項2,選項3,選項4\n「躊躇」的意思是什麼？,1,猶豫不決,非常快樂,走路很快,大聲說話\n蘋果的英文是什麼？,Apple,Banana,Apple,Orange,Grape");
+
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full relative">
-                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-cyan-500">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6"><BookOpen className="text-cyan-600" /> 試卷庫</h2>
+                    <div className="glass-card p-6 rounded-2xl flex flex-col h-full border-t-4 border-t-cyan-500 dark:border-t-neon-cyan">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-900 dark:text-white"><BookOpen className="text-cyan-600 dark:text-neon-cyan" /> 試卷庫</h2>
                         <div className="flex gap-2 mb-6">
-                            <input type="text" placeholder="名稱" className="flex-1 bg-slate-50 border rounded-lg px-3 py-2 outline-none" value={newExamTitle} onChange={e=>setNewExamTitle(e.target.value)} />
-                            <button onClick={createExam} className="bg-cyan-100 text-cyan-700 px-4 rounded-lg font-bold">建立</button>
+                            <input type="text" placeholder="新建試卷名稱" className="flex-1 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 dark:focus:border-neon-cyan outline-none" value={newExamTitle} onChange={e=>setNewExamTitle(e.target.value)} />
+                            <button onClick={createExam} className="bg-cyan-100 hover:bg-cyan-200 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-cyan-700 dark:text-neon-cyan px-4 rounded-lg font-bold transition flex items-center gap-1 border border-cyan-200 dark:border-neon-cyan/50"><Plus size={18}/> 建立</button>
                         </div>
-                        <div className="flex-1 overflow-y-auto space-y-3">
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                            {exams.length === 0 && <p className="text-slate-500 dark:text-gray-500 text-center py-10">資料庫空虛，請建立試卷</p>}
                             {exams.map(ex => (
-                                <div key={ex.id} onClick={() => setSelectedExam(ex)} className={`p-4 rounded-xl cursor-pointer transition flex flex-col gap-2 border group ${selectedExam?.id === ex.id ? 'bg-cyan-50 border-cyan-400' : 'bg-white'}`}>
+                                <div key={ex.id} onClick={() => setSelectedExam(ex)} className={`p-4 rounded-xl cursor-pointer transition flex flex-col gap-2 border group ${selectedExam?.id === ex.id ? 'bg-cyan-50 border-cyan-400 shadow-sm dark:bg-neon-cyan/10 dark:border-neon-cyan dark:shadow-neon-cyan text-slate-900 dark:text-white' : 'bg-white dark:bg-dark-main border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-500 text-slate-700 dark:text-gray-300'}`}>
                                     <div className="flex justify-between items-center">
-                                        <span className="font-bold truncate">{ex.title}</span>
-                                        <button onClick={e => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                        <span className="font-bold truncate pr-2">{ex.title}</span>
+                                        <button onClick={e => { e.stopPropagation(); deleteExam(ex.id); }} className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-neon-red opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
                                     </div>
-                                    <div className="text-xs text-slate-500">{ex.isPublished ? '已派送' : '草稿'} | {ex.questions?.length || 0} 題</div>
+                                    <div className="text-xs text-slate-500 dark:text-gray-500">{ex.isPublished ? '已派送' : '草稿'} | {ex.questions?.length || 0} 題</div>
                                 </div>
                             ))}
                         </div>
@@ -562,74 +762,149 @@
 
                     <div className="lg:col-span-2 glass-card p-6 rounded-2xl flex flex-col h-full relative">
                         {!selectedExam ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500">
                                 <Settings size={60} className="mb-4 opacity-20" />
-                                <p>請選擇試卷進入控制中心</p>
+                                <p>請選擇一份試卷進入控制中心</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col h-full">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b">
-                                    {isEditingTitle ? (
-                                        <div className="flex items-center gap-2">
-                                            <input type="text" value={editTitleValue} onChange={e=>setEditTitleValue(e.target.value)} className="bg-slate-50 border border-cyan-500 rounded-lg px-3 py-1 font-bold text-xl"/>
-                                            <button onClick={saveTitle} className="text-green-600"><CheckCircle2/></button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-2xl font-bold cursor-pointer" onClick={()=>{setEditTitleValue(selectedExam.title); setIsEditingTitle(true);}}>{selectedExam.title}</h2>
-                                            <button onClick={()=>{setEditTitleValue(selectedExam.title); setIsEditingTitle(true);}} className="text-slate-400"><Edit size={18}/></button>
+                            <div className="flex flex-col h-full fade-in">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-gray-800 shrink-0">
+                                    <div className="flex-1 pr-4">
+                                        {isEditingTitle ? (
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <input 
+                                                    type="text" 
+                                                    value={editTitleValue} 
+                                                    onChange={e => setEditTitleValue(e.target.value)} 
+                                                    onKeyDown={e => {
+                                                        if(e.key === 'Enter') saveExamTitle();
+                                                        if(e.key === 'Escape') setIsEditingTitle(false);
+                                                    }}
+                                                    className="bg-slate-50 dark:bg-dark-main border border-cyan-500 dark:border-neon-cyan text-slate-900 dark:text-white rounded-lg px-3 py-1 font-bold text-xl md:text-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition w-full max-w-md shadow-sm"
+                                                    autoFocus
+                                                />
+                                                <button onClick={saveExamTitle} className="p-1.5 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-lg transition" title="儲存 (Enter)"><CheckCircle2 size={20}/></button>
+                                                <button onClick={() => setIsEditingTitle(false)} className="p-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-400 rounded-lg transition" title="取消 (Esc)"><X size={20}/></button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 group mb-1">
+                                                <h2 
+                                                    className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide cursor-pointer hover:text-cyan-600 dark:hover:text-neon-cyan transition truncate max-w-[300px] md:max-w-md"
+                                                    onClick={() => { setEditTitleValue(selectedExam.title); setIsEditingTitle(true); }}
+                                                    title="點擊編輯試卷名稱"
+                                                >
+                                                    {selectedExam.title}
+                                                </h2>
+                                                <button onClick={() => { setEditTitleValue(selectedExam.title); setIsEditingTitle(true); }} className="text-slate-400 hover:text-blue-600 dark:hover:text-neon-blue p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition" title="編輯名稱"><Edit size={18}/></button>
+                                            </div>
+                                        )}
+                                        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">目前題庫數量：<span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold">{selectedExam.questions?.length || 0}</span> 題</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2 shrink-0">
+                                        <button onClick={() => togglePublish(selectedExam)} className={`px-6 py-2 rounded-lg font-bold text-sm tracking-widest transition-all shadow-md flex items-center justify-center gap-2 ${selectedExam.isPublished ? 'bg-transparent border border-slate-400 dark:border-gray-500 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white' : 'bg-cyan-600 dark:bg-neon-cyan text-white dark:text-dark-main hover:bg-cyan-700 dark:hover:bg-cyan-400 dark:shadow-neon-cyan dark:hover:shadow-neon-cyan-hover'}`}>
+                                            <Zap size={16} /> {selectedExam.isPublished ? '停止派送' : '🚀 立即派送'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex gap-2 md:gap-6 border-b border-slate-200 dark:border-gray-800 mb-6 overflow-x-auto shrink-0 pb-1">
+                                    <ExamTabButton id="warroom" currentTab={examTab} setTab={setExamTab} icon={Activity} label="📡 即時戰情室" />
+                                    <ExamTabButton id="settings" currentTab={examTab} setTab={setExamTab} icon={Settings} label="測驗邏輯設定" />
+                                    <ExamTabButton id="questions" currentTab={examTab} setTab={setExamTab} icon={Clipboard} label="題庫管理與編輯" />
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto pr-2 pb-4 relative min-h-[400px]">
+                                    
+                                    {examTab === 'warroom' && <WarRoom exam={selectedExam} />}
+
+                                    {examTab === 'settings' && (
+                                        <div className="flex flex-col gap-6 fade-in">
+                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-between">
+                                                <div>
+                                                    <h3 className="font-bold text-slate-700 dark:text-gray-300 flex items-center gap-2 mb-4"><Settings size={18} className="text-slate-500 dark:text-gray-400"/> 動態測驗邏輯</h3>
+                                                    <div className="mb-4">
+                                                        <div className="flex justify-between mb-2">
+                                                            <label className="text-sm font-bold text-slate-700 dark:text-gray-300">隨機抽題數量 (Draw Count)</label>
+                                                            <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.drawCount} 題</span>
+                                                        </div>
+                                                        <input type="range" min="1" max={Math.max(50, selectedExam.questions?.length || 50)} value={selectedExam.drawCount} onChange={e => updateExamSetting('drawCount', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
+                                                        <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 若設定數量大於總題數，將以「全題數」測驗。</p>
+                                                    </div>
+                                                    <div className="pt-4 border-t border-slate-100 dark:border-gray-700">
+                                                        <div className="flex justify-between mb-2">
+                                                            <label className="text-sm font-bold text-slate-700 dark:text-gray-300">每題作答時間 (Time Limit)</label>
+                                                            <span className="text-cyan-700 dark:text-neon-cyan font-mono font-bold bg-cyan-100 dark:bg-cyan-900/50 px-3 py-0.5 rounded-full">{selectedExam.timeLimit || 30} 秒</span>
+                                                        </div>
+                                                        <input type="range" min="5" max="120" step="5" value={selectedExam.timeLimit || 30} onChange={e => updateExamSetting('timeLimit', parseInt(e.target.value))} className="w-full accent-cyan-600 dark:accent-neon-cyan cursor-pointer" />
+                                                        <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-2">💡 每題倒數秒數，影響計分權重 (預設 30 秒)。</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col justify-center">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <div>
+                                                        <div className="text-base font-bold text-slate-700 dark:text-gray-300 mb-1">無限刷題模式</div>
+                                                        <div className="text-xs text-slate-500 dark:text-gray-500">開啟允許學生針對此試卷重複測驗；關閉則為單次嚴格測驗。</div>
+                                                    </div>
+                                                    <button onClick={() => updateExamSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full flex items-center transition-colors duration-300 shrink-0 ${selectedExam.allowMultipleAttempts ? 'bg-cyan-500 dark:bg-neon-cyan dark:shadow-neon-cyan' : 'bg-slate-300 dark:bg-gray-700'}`}>
+                                                        <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${selectedExam.allowMultipleAttempts ? 'translate-x-8' : 'translate-x-1'}`}></div>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
-                                    <button onClick={() => togglePublish(selectedExam)} className={`px-6 py-2 rounded-lg font-bold text-sm ${selectedExam.isPublished ? 'border border-slate-400 text-slate-600' : 'bg-cyan-600 text-white'}`}>
-                                        {selectedExam.isPublished ? '停止派送' : '🚀 立即派送'}
-                                    </button>
-                                </div>
-                                <div className="flex gap-4 border-b mb-6">
-                                    <ExamTabButton id="warroom" currentTab={examTab} setTab={setExamTab} icon={Activity} label="📡 戰情室" />
-                                    <ExamTabButton id="settings" currentTab={examTab} setTab={setExamTab} icon={Settings} label="邏輯設定" />
-                                    <ExamTabButton id="questions" currentTab={examTab} setTab={setExamTab} icon={Clipboard} label="題庫管理" />
-                                </div>
-                                <div className="flex-1 overflow-y-auto">
-                                    {examTab === 'settings' ? (
-                                        <div className="grid gap-6">
-                                            <div className="bg-slate-50 p-5 rounded-xl">
-                                                <h3>動態邏輯</h3>
-                                                <div className="mt-4"><label>隨機抽題：{selectedExam.drawCount} 題</label><input type="range" min="1" max="100" value={selectedExam.drawCount} onChange={e=>updateSetting('drawCount',parseInt(e.target.value))} className="w-full" /></div>
-                                                <div className="mt-4 border-t pt-4"><label>答題秒數：{selectedExam.timeLimit||30} 秒</label><input type="range" min="5" max="120" step="5" value={selectedExam.timeLimit||30} onChange={e=>updateSetting('timeLimit',parseInt(e.target.value))} className="w-full" /></div>
+
+                                    {examTab === 'questions' && (
+                                        <div className="flex flex-col gap-6 fade-in">
+                                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                                <div className="bg-white dark:bg-gray-800/40 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm dark:shadow-none flex flex-col">
+                                                    <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2 mb-2"><Clipboard size={18} className="text-cyan-600 dark:text-neon-cyan"/> 從 Excel 快速貼上</h4>
+                                                    <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-3">依序框選：<span className="font-bold text-cyan-600 dark:text-neon-cyan">題目、正確答案、選項1~4</span>，複製後貼於下方。</p>
+                                                    <textarea 
+                                                        value={pasteText} onChange={e => setPasteText(e.target.value)}
+                                                        placeholder="在此按 Ctrl+V 貼上內容..."
+                                                        className="w-full h-20 bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-600 rounded-lg p-3 text-sm text-slate-800 dark:text-gray-200 focus:border-cyan-500 dark:focus:border-neon-cyan outline-none transition resize-none"
+                                                    ></textarea>
+                                                    <div className="mt-3 flex justify-end gap-2">
+                                                        <button onClick={() => handleExcelPaste(true)} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 text-xs rounded-lg transition font-bold border border-transparent">覆寫</button>
+                                                        <button onClick={() => handleExcelPaste(false)} className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 dark:bg-neon-cyan/20 dark:hover:bg-neon-cyan/40 text-white dark:text-neon-cyan text-xs rounded-lg transition font-bold border border-transparent dark:border-neon-cyan/50">附加</button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-slate-50 dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-5 rounded-xl flex flex-col justify-center items-center text-center shadow-sm dark:shadow-none relative">
+                                                    <h4 className="font-bold text-slate-700 dark:text-gray-300 mb-2 flex items-center gap-2"><Upload size={18} className="text-slate-500 dark:text-gray-400"/> 傳統 CSV 匯入</h4>
+                                                    <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-4">上傳標準 CSV 格式檔案，此操作將<span className="font-bold text-red-500">覆寫</span>現有題目。</p>
+                                                    <label className="bg-slate-800 dark:bg-gray-800 hover:bg-slate-700 dark:hover:bg-gray-700 text-white px-5 py-2 rounded-lg border border-slate-700 dark:border-gray-600 cursor-pointer transition shadow-sm font-bold text-sm">
+                                                        選擇 CSV 檔案
+                                                        <input type="file" accept=".csv" className="hidden" onChange={handleQuestionCSVUpload} />
+                                                    </label>
+                                                    <button onClick={downloadExamSample} className="mt-3 text-[11px] text-cyan-600 dark:text-neon-cyan hover:underline text-center">下載題庫 CSV 範例檔</button>
+                                                </div>
                                             </div>
-                                            <div className="bg-slate-50 p-5 rounded-xl flex justify-between items-center">
-                                                <div><h3 className="font-bold">無限刷題</h3><p className="text-xs text-slate-500">開啟則允許學生重複挑戰</p></div>
-                                                <button onClick={()=>updateSetting('allowMultipleAttempts', !selectedExam.allowMultipleAttempts)} className={`w-14 h-7 rounded-full flex items-center transition-colors duration-300 shrink-0 ${selectedExam.allowMultipleAttempts?'bg-cyan-500':'bg-slate-300'}`}>
-                                                    <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${selectedExam.allowMultipleAttempts?'translate-x-8':'translate-x-1'}`}></div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-6">
-                                            <div className="bg-slate-50 p-5 rounded-xl">
-                                                <h4>Excel 快速貼上</h4>
-                                                <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="題目 正確答案 選項..." className="w-full h-20 border rounded-lg p-2 mt-2"></textarea>
-                                                <div className="flex justify-end gap-2 mt-2"><button onClick={()=>handleExcel(true)} className="px-3 py-1 bg-slate-200 rounded">覆寫</button><button onClick={()=>handleExcel(false)} className="px-3 py-1 bg-cyan-600 text-white rounded">附加</button></div>
-                                            </div>
+
                                             <div>
-                                                <div className="flex justify-between items-center border-t pt-4 mb-4">
-                                                    <h4>試卷內容</h4>
-                                                    <button onClick={()=>openModal()} className="text-blue-600 font-bold">+ 新增單題</button>
+                                                <div className="flex justify-between items-center border-t border-slate-200 dark:border-gray-800 pt-4 mb-4">
+                                                    <h4 className="font-bold text-slate-800 dark:text-gray-300 flex items-center gap-2"><BookOpen size={18}/> 試卷內容檢視</h4>
+                                                    <button onClick={() => openModal()} className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-neon-blue/20 dark:hover:bg-neon-blue/40 text-blue-700 dark:text-neon-blue text-sm rounded-lg transition font-bold flex items-center gap-1 border border-blue-200 dark:border-neon-blue/50"><Plus size={16}/> 單題新增</button>
                                                 </div>
                                                 <div className="space-y-3">
-                                                    {selectedExam.questions?.map((q,i)=>(
-                                                        <div key={i} className="bg-white border p-4 rounded-xl relative group">
-                                                            <div className="flex justify-between">
-                                                                <strong>{i+1}. {q.question}</strong>
-                                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100">
-                                                                    <button onClick={()=>openModal(i,q)}><Edit size={16}/></button>
-                                                                    {/* 🌟 刪除單題也加上樂觀更新 */}
-                                                                    <button onClick={async()=>{const qs=[...selectedExam.questions]; qs.splice(i,1); setSelectedExam(p=>({...p, questions:qs})); await updateDoc(doc(db,'exams',selectedExam.id),{questions:qs});}}><Trash2 size={16}/></button>
+                                                    {!selectedExam.questions || selectedExam.questions.length === 0 ? (
+                                                        <div className="text-center py-10 bg-slate-50 dark:bg-gray-800/20 rounded-xl border border-dashed border-slate-300 dark:border-gray-700 text-slate-500 dark:text-gray-500">尚無題目，請使用上方 Excel 貼上或手動新增</div>
+                                                    ) : selectedExam.questions.map((q, idx) => (
+                                                        <div key={idx} className="bg-white dark:bg-dark-main border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-sm dark:shadow-none relative group transition hover:border-cyan-300 dark:hover:border-gray-500">
+                                                            <div className="flex justify-between items-start mb-3">
+                                                                <span className="font-bold text-slate-800 dark:text-white text-lg pr-12 leading-snug"><span className="text-cyan-600 dark:text-neon-cyan mr-2">{idx + 1}.</span>{q.question}</span>
+                                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition absolute top-4 right-4 bg-white dark:bg-dark-main pl-2">
+                                                                    <button onClick={() => openModal(idx, q)} className="text-slate-400 hover:text-blue-600 dark:hover:text-neon-blue p-1"><Edit size={18}/></button>
+                                                                    <button onClick={async()=>{const qs=[...selectedExam.questions]; qs.splice(idx,1); setSelectedExam(p=>({...p, questions:qs})); await updateDoc(doc(db,'exams',selectedExam.id),{questions:qs});}} className="text-slate-400 hover:text-red-500 dark:hover:text-neon-red p-1"><Trash2 size={18}/></button>
                                                                 </div>
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                                                                {q.options.map((o,oi)=>(
-                                                                    <div key={oi} className={`p-2 rounded ${String(q.correct)===String(oi+1)||q.correct===o?'bg-cyan-50 font-bold border-cyan-200 border':'bg-slate-50'}`}>{oi+1}. {o}</div>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-gray-400">
+                                                                {q.options.map((opt, oIdx) => (
+                                                                    <div key={oIdx} className={`px-3 py-2 rounded-lg transition ${String(q.correct) === String(oIdx+1) || String(q.correct) === opt ? 'bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800/50 text-cyan-800 dark:text-cyan-300 font-bold' : 'bg-slate-50 dark:bg-gray-800 border border-transparent'}`}>
+                                                                        <span className="mr-2 opacity-60">{oIdx + 1}.</span> {opt}
+                                                                    </div>
                                                                 ))}
                                                             </div>
                                                         </div>
@@ -638,19 +913,38 @@
                                             </div>
                                         </div>
                                     )}
+
                                 </div>
                             </div>
                         )}
-                        <BaseModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} title="編輯題目" icon={Clipboard} onConfirm={saveSingle} maxWidth="max-w-2xl">
-                            <div><label>題目</label><textarea value={modalData.question} onChange={e=>setModalData({...modalData,question:e.target.value})} className="w-full border rounded p-2 h-20"/></div>
-                            <div><label>答案 (1~4 或文字)</label><input value={modalData.correct} onChange={e=>setModalData({...modalData,correct:e.target.value})} className="w-full border rounded p-2"/></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                {modalData.options.map((o,i)=>(
-                                    <div key={i}><label>選項 {i+1}</label><input value={o} onChange={e=>{const n=[...modalData.options];n[i]=e.target.value;setModalData({...modalData,options:n});}} className="w-full border rounded p-2"/></div>
-                                ))}
-                            </div>
-                        </BaseModal>
                     </div>
+
+                    <BaseModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        title={editIndex !== null ? "編輯題目" : "單題新增"}
+                        icon={editIndex !== null ? Edit : Plus}
+                        confirmText="儲存題目"
+                        onConfirm={saveSingle}
+                        maxWidth="max-w-2xl"
+                    >
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">題目內容</label>
+                            <textarea value={modalData.question} onChange={e => setModalData({...modalData, question: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition h-24"></textarea>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">正確解答 <span className="text-xs font-normal text-slate-500">(可輸入數字 1~4 或完整選項文字)</span></label>
+                            <input type="text" value={modalData.correct} onChange={e => setModalData({...modalData, correct: e.target.value})} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            {modalData.options.map((opt, i) => (
+                                <div key={i}>
+                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">選項 {i + 1}</label>
+                                    <input type="text" value={opt} onChange={e => { const newOpts = [...modalData.options]; newOpts[i] = e.target.value; setModalData({...modalData, options: newOpts}); }} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" />
+                                </div>
+                            ))}
+                        </div>
+                    </BaseModal>
                 </div>
             );
         };
@@ -674,27 +968,57 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col">
-                    <header className="glass-card px-6 py-4 flex justify-between items-center sticky top-0 z-40">
-                        <div className="flex items-center gap-3"><Zap className="text-cyan-600" /> <h1 className="text-xl font-bold">系統中控台</h1></div>
-                        <div className="flex items-center gap-4">
-                            <a href="readme.html" target="_blank" className="p-2 rounded-full hover:bg-slate-200"><HelpCircle size={20} /></a>
-                            <button onClick={toggleTheme} className="p-2 rounded-full">{isDarkMode ? <Sun size={20}/> : <Moon size={20}/>}</button>
-                            <span className="hidden md:inline text-sm">{user.email}</span>
-                            <button onClick={()=>setIsPwdModalOpen(true)} className="flex items-center gap-1 text-sm"><Key size={16}/>密碼</button>
-                            <button onClick={()=>signOut(auth)} className="text-sm text-red-500"><LogOut size={16}/></button>
+                <div className="min-h-screen flex flex-col relative">
+                    <header className="glass-card border-b-0 border-cyan-500/20 dark:border-neon-cyan/20 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+                        <div className="flex items-center gap-3">
+                            <Zap className="text-cyan-600 dark:text-neon-cyan" size={24} />
+                            <h1 className="text-xl font-bold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-gray-400">系統中控台</h1>
+                            <span className="text-xs border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 px-2 py-0.5 rounded-full ml-2">v2.0 Soft-Light</span>
+                        </div>
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <a href="readme.html" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400" title="系統部署與轉移指南">
+                                <HelpCircle size={20} />
+                            </a>
+                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition text-slate-600 dark:text-gray-400">
+                                {isDarkMode ? <Sun size={20} className="hover:text-yellow-400" /> : <Moon size={20} className="hover:text-indigo-600" />}
+                            </button>
+                            <span className="text-sm text-slate-500 dark:text-gray-400 hidden md:inline border-l border-slate-300 dark:border-gray-700 pl-4">指揮官：{user.email}</span>
+                            <button onClick={() => setIsPwdModalOpen(true)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-neon-cyan transition px-3 py-1.5 rounded-lg border border-transparent hover:border-cyan-200 dark:hover:border-cyan-900/50 hover:bg-cyan-50 dark:hover:bg-cyan-900/20" title="修改密碼"><Key size={16}/><span className="hidden lg:inline">修改密碼</span></button>
+                            <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-neon-red transition px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"><LogOut size={16}/> 登出連線</button>
                         </div>
                     </header>
-                    <main className="flex-1 container mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6">
-                        <aside className="w-full md:w-56 flex flex-col gap-2">
-                            <button onClick={()=>setView('classes')} className={`p-4 rounded-xl flex items-center gap-3 font-bold ${view==='classes'?'bg-blue-100 text-blue-700':'hover:bg-slate-100'}`}><Users size={20}/> 班級管理</button>
-                            <button onClick={()=>setView('exams')} className={`p-4 rounded-xl flex items-center gap-3 font-bold ${view==='exams'?'bg-cyan-100 text-cyan-700':'hover:bg-slate-100'}`}><BookOpen size={20}/> 試卷兵工廠</button>
+
+                    <main className="flex-1 container mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6 h-[calc(100vh-76px)]">
+                        <aside className="w-full md:w-48 lg:w-56 shrink-0 flex flex-col gap-2">
+                            <button onClick={()=>setView('classes')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='classes' ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm dark:bg-neon-blue/20 dark:text-neon-blue dark:border-neon-blue/50 dark:shadow-neon-blue' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
+                                <Users size={20}/> 班級管理
+                            </button>
+                            <button onClick={()=>setView('exams')} className={`p-4 rounded-xl flex items-center gap-3 transition-all font-bold ${view==='exams' ? 'bg-cyan-100 text-cyan-700 border border-cyan-300 shadow-sm dark:bg-neon-cyan/20 dark:text-neon-cyan dark:border-neon-cyan/50 dark:shadow-neon-cyan' : 'glass-card text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
+                                <BookOpen size={20}/> 試卷兵工廠
+                            </button>
                         </aside>
-                        <section className="flex-1 min-h-0">{view === 'classes' ? <ClassManager user={user} /> : <ExamFactory user={user} />}</section>
+                        
+                        <section className="flex-1 min-h-0 relative">
+                            {view === 'classes' && <ClassManager user={user} />}
+                            {view === 'exams' && <ExamFactory user={user} />}
+                        </section>
                     </main>
-                    <BaseModal isOpen={isPwdModalOpen} onClose={()=>setIsPwdModalOpen(false)} title="修改密碼" icon={Key} onConfirm={handleUpdatePassword}>
-                        <div className="bg-amber-50 text-amber-700 p-3 rounded mb-4 text-xs">安全考量：若登入已久請先登出再登入後修改</div>
-                        <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="新密碼" className="w-full border rounded p-2"/>
+
+                    <BaseModal
+                        isOpen={isPwdModalOpen}
+                        onClose={() => setIsPwdModalOpen(false)}
+                        title="變更存取金鑰 (密碼)"
+                        icon={Key}
+                        confirmText="確認變更"
+                        onConfirm={handleUpdatePassword}
+                    >
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-xs p-3 rounded-lg mb-4">
+                            💡 提示：基於安全防護，如果您已經登入一段時間，系統可能會拒絕修改密碼。遇到此情況請先登出並重新登入即可。
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">請輸入新密碼 (至少 6 個字元)</label>
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-dark-main border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 dark:focus:border-neon-cyan transition" placeholder="******" />
+                        </div>
                     </BaseModal>
                 </div>
             );
@@ -705,11 +1029,32 @@
             const [checking, setChecking] = useState(true);
             const [isDarkMode, setIsDarkMode] = useState(false);
 
-            useEffect(() => { document.documentElement.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
-            useEffect(() => { const unsub = onAuthStateChanged(auth, u => { setUser(u); setChecking(false); }); return () => unsub(); }, []);
+            useEffect(() => {
+                if (isDarkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }, [isDarkMode]);
 
-            if (checking) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-cyan-600"></div></div>;
-            return <ToastProvider>{user ? <Dashboard user={user} isDarkMode={isDarkMode} toggleTheme={()=>setIsDarkMode(!isDarkMode)} /> : <AuthScreen isDarkMode={isDarkMode} toggleTheme={()=>setIsDarkMode(!isDarkMode)} />}</ToastProvider>;
+            const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setChecking(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (checking) return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-main">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600 dark:border-neon-cyan shadow-md dark:shadow-neon-cyan"></div>
+                </div>
+            );
+
+            return (
+                <ToastProvider>
+                    {user ? <Dashboard user={user} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <AuthScreen isDarkMode={isDarkMode} toggleTheme={toggleTheme} />}
+                </ToastProvider>
+            );
         };
 
         createRoot(document.getElementById('root')).render(<App />);
