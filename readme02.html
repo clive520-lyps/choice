@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧測驗系統 | Firebase 管理指南</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+            background-image: linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(203, 213, 225, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: #00E5FF;
+            color: #0F172A;
+            font-weight: 900;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        code {
+            background-color: #F1F5F9;
+            color: #0284C7;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.375rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875em;
+            font-weight: bold;
+        }
+        
+        /* 表格樣式優化 */
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        th {
+            background-color: #F8FAFC;
+            font-weight: 800;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.875rem;
+            border-bottom: 2px solid #E2E8F0;
+            padding: 1rem;
+        }
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #F1F5F9;
+            color: #475569;
+            vertical-align: top;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover td {
+            background-color: #F8FAFC;
+        }
+    </style>
+
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen py-10 px-4 md:px-8">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- 標題區塊 -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 border-4 border-cyan-500 shadow-[0_0_15px_rgba(0,229,255,0.5)] mb-6">
+                <i data-lucide="bar-chart-3" class="text-cyan-600 w-10 h-10"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-black tracking-widest text-slate-900 mb-4">智慧測驗系統</h1>
+            <p class="text-xl text-slate-600 font-bold bg-slate-200 inline-block px-4 py-1.5 rounded-full">Firebase 系統管理與架構指南</p>
+            <p class="text-slate-500 mt-4 max-w-2xl mx-auto leading-relaxed">
+                這份文件詳細說明了「智慧測驗系統」在 Firebase 雲端環境中的運作方式，包含資料儲存架構、教師帳號權限管理，以及免費版資源的消耗分析。
+            </p>
+        </header>
+
+        <!-- 內容區塊 -->
+        <main class="space-y-8">
+
+            <!-- 壹、老師帳號 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-t-4 border-cyan-500">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                    <span class="step-number bg-cyan-100 text-cyan-700">壹</span>
+                    老師帳號在哪裡？(權限與隔離機制)
+                </h2>
+                <p class="text-slate-600 mb-6 font-medium">本系統將「帳號密碼」與「測驗資料」分開儲存，以確保最高的安全性。</p>
+                
+                <div class="space-y-6">
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="shield-check" class="text-cyan-600 w-5 h-5"></i> 1. 老師帳號存在哪裡？
+                        </h3>
+                        <p class="text-slate-600 mb-3">老師的帳號密碼 <strong>「沒有」</strong> 存在 Firestore 資料庫中，而是由 Firebase 專門的 <strong>Authentication (身分驗證)</strong> 服務來管理。</p>
+                        <ul class="list-disc list-inside text-slate-600 ml-5 space-y-2">
+                            <li><strong>如何查看</strong>：登入 Firebase 控制台 > 左側選單「建構 (Build)」 > <strong>Authentication</strong> > <strong>Users (使用者)</strong> 頁籤。</li>
+                            <li><strong>包含資料</strong>：老師的 Email、登入方式、最後登入時間，以及最重要的 <strong>「使用者 UID」</strong>。</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="key" class="text-cyan-600 w-5 h-5"></i> 2. UID 是什麼？如何做到資料隔離？
+                        </h3>
+                        <p class="text-slate-600 mb-3">UID 是一串獨一無二的亂碼（例如：<code>a1B2c3D4e5F6...</code>）。這串 UID 就是這套系統用來「隔離資料」的核心鑰匙。</p>
+                        <ul class="list-disc list-inside text-slate-600 ml-5 space-y-2">
+                            <li><strong>綁定資料</strong>：當老師建立新班級或新考卷時，系統會自動將老師的 UID 寫入該筆資料的 <code>teacherId</code> 欄位中。</li>
+                            <li><strong>讀取限制</strong>：
+                                <ul class="list-circle list-inside ml-5 mt-2 space-y-1 text-sm">
+                                    <li><strong>老師端</strong>：登入後，系統只會撈取 <code>teacherId</code> 等於自己 UID 的班級與考卷，絕對不會看到別的老師的資料。</li>
+                                    <li><strong>學生端</strong>：學生選擇班級後，系統會記住該班級所屬的 <code>teacherId</code>，確保學生只會看到「自己老師」派送的任務。</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 貳、資料庫架構 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-t-4 border-blue-500">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                    <span class="step-number bg-blue-100 text-blue-700">貳</span>
+                    系統資料庫架構表 (Firestore Database)
+                </h2>
+                <p class="text-slate-600 mb-6 font-medium">除了老師帳號外，所有的「班級、學生、考卷、成績」都存在 <strong>Firestore Database</strong> 中。以下是 5 個主要的集合 (Collections) 解析：</p>
+                
+                <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>集合名稱 (Collection)</th>
+                                <th>這是什麼資料？</th>
+                                <th>主要資料欄位 (Document Fields)</th>
+                                <th>什麼時候會「寫入」(新增/修改)？</th>
+                                <th>什麼時候會「讀取」？</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="font-bold text-blue-600">classes</span><br><span class="text-xs text-slate-400">班級資料</span></td>
+                                <td>老師建立的班級清單</td>
+                                <td>• <code>name</code>: 班級名稱<br>• <code>teacherId</code>: 老師 UID</td>
+                                <td>老師在後臺點擊「新增班級」時。</td>
+                                <td>1. 老師登入後臺顯示班級列表時。<br>2. 學生登入畫面選擇班級時。</td>
+                            </tr>
+                            <tr>
+                                <td><span class="font-bold text-blue-600">students</span><br><span class="text-xs text-slate-400">學生名單</span></td>
+                                <td>各班級底下的學生名冊</td>
+                                <td>• <code>classId</code>: 所屬班級 ID<br>• <code>seatNo</code>: 座號<br>• <code>name</code>: 姓名</td>
+                                <td>老師在後臺「新增/編輯學生」或「批次匯入 CSV」時。</td>
+                                <td>1. 老師點選班級查看學生名單時。<br>2. 學生在登入畫面拉取姓名選單時。</td>
+                            </tr>
+                            <tr>
+                                <td><span class="font-bold text-blue-600">exams</span><br><span class="text-xs text-slate-400">試卷與題庫</span></td>
+                                <td>考卷設定與所有題目</td>
+                                <td>• <code>title</code>: 試卷名稱<br>• <code>isPublished</code>: 是否發布<br>• <code>questions</code>: 題目陣列<br>• <code>teacherId</code>: 老師 UID</td>
+                                <td>老師「建立試卷」、「匯入題庫」、「更改發布狀態」時。</td>
+                                <td>1. 老師登入後臺顯示試卷列表時。<br>2. 學生登入後顯示「任務面板」時。<br>3. 學生點擊開始測驗抓取題目時。</td>
+                            </tr>
+                            <tr>
+                                <td><span class="font-bold text-blue-600">scores</span><br><span class="text-xs text-slate-400">成績紀錄</span></td>
+                                <td>學生考完試的最終分數</td>
+                                <td>• <code>studentId</code>: 學生 ID<br>• <code>examId</code>: 考卷 ID<br>• <code>score</code>: 總分<br>• <code>accuracy</code>: 答對率</td>
+                                <td>學生考完試，進入「結算畫面」的瞬間 (一次考試寫入 1 筆)。</td>
+                                <td>1. 學生查看「英雄榜」即時排名時。<br>2. 老師打開「即時戰情室」時。<br>3. 老師點擊「匯出成績 CSV」時。</td>
+                            </tr>
+                            <tr>
+                                <td><span class="font-bold text-blue-600">mistakes</span><br><span class="text-xs text-slate-400">錯題紀錄</span></td>
+                                <td>學生答錯的每一道題目</td>
+                                <td>• <code>studentId</code>: 學生 ID<br>• <code>question</code>: 題目內容<br>• <code>selected</code>: 選錯的答案</td>
+                                <td>學生考完試，進入「結算畫面」時。(錯幾題就連續寫入幾筆)</td>
+                                <td>1. 學生打開「專屬錯題本」時。<br>2. 老師打開「即時戰情室」統計傷亡最慘重題時。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex items-start gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                    <i data-lucide="lightbulb" class="text-amber-500 w-6 h-6 shrink-0 mt-0.5"></i>
+                    <p class="text-amber-800 text-sm">
+                        <strong>提示：</strong>如果想手動刪除某個搗蛋學生的假成績，只要進入 Firebase 控制台的 Firestore Database，找到 <code>scores</code> 集合，刪除該筆文件即可。
+                    </p>
+                </div>
+            </section>
+
+            <!-- 參、免費版額度 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-t-4 border-amber-500">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                    <span class="step-number bg-amber-100 text-amber-700">參</span>
+                    Firebase 免費版額度分析與防爆指南
+                </h2>
+                <p class="text-slate-600 mb-6 font-medium">Firebase 免費版 (Spark 方案) 給予的額度對於「單一老師、數個班級」的日常教學使用絕對綽綽有餘，但若推廣至「全校大會考」，需留意以下資源消耗情形。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="text-amber-500 w-5 h-5"></i> 1. 免費額度上限 (每日重置)
+                        </h3>
+                        <ul class="space-y-2 text-slate-600 font-medium">
+                            <li class="flex justify-between border-b border-slate-200 pb-2"><span>讀取 (Reads)</span> <span class="font-bold text-slate-800">50,000 次 / 天</span></li>
+                            <li class="flex justify-between border-b border-slate-200 pb-2"><span>寫入 (Writes)</span> <span class="font-bold text-slate-800">20,000 次 / 天</span></li>
+                            <li class="flex justify-between border-b border-slate-200 pb-2"><span>刪除 (Deletes)</span> <span class="font-bold text-slate-800">20,000 次 / 天</span></li>
+                            <li class="flex justify-between pt-1"><span>儲存空間</span> <span class="font-bold text-slate-800">1 GB <span class="text-xs text-slate-400 font-normal">(純文字極難用完)</span></span></li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-green-50 p-5 rounded-xl border border-green-200 flex flex-col justify-center">
+                        <h3 class="font-bold text-lg text-green-800 mb-2 flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="text-green-600 w-5 h-5"></i> 3. 如何應對？
+                        </h3>
+                        <p class="text-green-700 text-sm leading-relaxed">
+                            如果您只是在幾間任課班級使用，請放心大膽地用！若某天收到 Firebase 的「用量達 80% 警告信」，系統也不會偷偷扣款（滿了只會暫停寫入，隔日下午重置）。若未來想推廣全校，可考慮請工程師優化「錯題打包上傳」機制以減少寫入次數。
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-lg text-red-600 mb-4 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i> 2. 危機情境分析 (可能耗盡額度的狀況)
+                </h3>
+                <div class="space-y-4">
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                        <h4 class="font-bold text-red-800 mb-1">危機一：專屬錯題本的「單題寫入」 (消耗寫入額度)</h4>
+                        <p class="text-sm text-red-700 mb-1"><strong>原因：</strong>目前的設計是「錯幾題，就寫入幾筆資料」。</p>
+                        <p class="text-sm text-red-700"><strong>情境：</strong>如果 100 位學生考試，平均每人錯 20 題，考一次試就會產生 2,000 次寫入。若開啟「無限刷題」，一天幾千人次測驗，20,000 次寫入額度可能用盡。</p>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <h4 class="font-bold text-orange-800 mb-1">危機二：即時戰力排行榜 (消耗讀取額度)</h4>
+                        <p class="text-sm text-orange-700 mb-1"><strong>原因：</strong>系統使用 <code>onSnapshot</code> 即時監聽。只要有任何人交卷，停留在「排行榜」與「戰情室」的所有人畫面都會向資料庫索取最新資料。</p>
+                        <p class="text-sm text-orange-700"><strong>情境：</strong>若全校百人同時連線停留在英雄榜，每秒鐘都有人交卷，50,000 次讀取額度可能會在短時間內快速消耗。</p>
+                    </div>
+                    <div class="bg-rose-50 p-4 rounded-xl border border-rose-100">
+                        <h4 class="font-bold text-rose-800 mb-1">危機三：老師大掃除「刪除班級」 (消耗刪除額度)</h4>
+                        <p class="text-sm text-rose-700 mb-1"><strong>原因：</strong>點擊「刪除班級」時，系統會一併刪除該班所有的學生、成績與錯題。</p>
+                        <p class="text-sm text-rose-700"><strong>情境：</strong>若學期末刪除一個累積了上萬筆測驗紀錄的班級，瞬間的刪除指令可能會超過一天 20,000 次的上限，導致後半部資料刪除失敗。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 肆、刪除專案 -->
+            <section class="glass-card rounded-2xl p-6 md:p-8 border-t-4 border-slate-800">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                    <span class="step-number bg-slate-200 text-slate-800">肆</span>
+                    如何徹底刪除 Firebase 專案？
+                </h2>
+                <p class="text-slate-600 mb-6 font-medium">如果您測試完畢，想要清空重來，請依照以下步驟刪除專案：</p>
+                
+                <ol class="list-decimal list-inside space-y-3 text-slate-700 font-medium mb-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <li>登入 <a href="https://console.firebase.google.com/" target="_blank" class="text-cyan-600 hover:underline font-bold">Firebase Console</a> 並進入您的專案。</li>
+                    <li>點擊左上角「專案總覽 (Project Overview)」旁邊的 <strong>齒輪圖示 <i data-lucide="settings" class="inline w-4 h-4"></i></strong>。</li>
+                    <li>選擇 <strong>「專案設定 (Project settings)」</strong>。</li>
+                    <li>在預設的「一般 (General)」頁籤中，滑到最底端。</li>
+                    <li>點擊 <strong>「刪除專案 (Delete project)」</strong>，並勾選所有確認方塊後送出即可。</li>
+                </ol>
+
+                <div class="flex items-center gap-3 bg-red-100 text-red-700 p-4 rounded-xl font-bold">
+                    <i data-lucide="alert-octagon" class="w-6 h-6 shrink-0"></i>
+                    注意：刪除後，所有資料、帳號與考卷都會被永久清除，無法復原。
+                </div>
+            </section>
+
+        </main>
+        
+        <footer class="text-center py-8 text-slate-500 text-sm font-medium">
+            Smart Quiz System Documentation &copy; 2024
+        </footer>
+    </div>
+
+    <!-- 初始化 Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
